@@ -38,7 +38,10 @@ button {
     z-index: 1;
 }
 
-#playAll, #shufflePlay, #loadFavorites, #shuffleFavorites {
+#playAll,
+#shufflePlay,
+#loadFavorites,
+#shuffleFavorites {
     margin: 15px 0;
     padding: 10px 15px;
     background: #1a1a1a;
@@ -159,17 +162,16 @@ main {
     font-style: normal;
 }
 
-/* --- Player Footer (Cool Design) --- */
+/* --- Player Footer --- */
 .player {
     grid-column: 1 / -1;
     display: flex;
     align-items: center;
     gap: 15px;
     padding: 12px 20px;
-    background: rgba(20, 20, 20, 0.95);
+    background: rgba(20, 20, 20, 0);
     backdrop-filter: blur(12px);
     border-top: 1px solid #222;
-    border-radius: 12px 12px 0 0;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
 }
 .player img {
@@ -177,11 +179,21 @@ main {
     border-radius: 8px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
 }
+.player img:hover {
+    cursor: pointer;
+    border: 3px dashed #1db954;
+    padding: 5px;
+}
 .player div {
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 4px;
+}
+#playerArtist:hover {
+    color: #1db954;
+    font-weight: bold;
+    cursor: pointer;
 }
 #seek {
     width: 100%;
@@ -195,6 +207,7 @@ main {
     background: #1a1a1a;
     border-radius: 8px;
     color: #fff;
+    width: 50px;
 }
 .player button:hover {
     background: #1db954;
@@ -209,9 +222,9 @@ main {
     right: 0;
     bottom: 90px;
     padding: 50px 30px;
-    background: rgba(0, 0, 0, 0.95);
+    background: rgba(0, 0, 0, 0.75);
     overflow-y: auto;
-    z-index: 5;
+    z-index: 4;
     text-align: center;
 }
 .word {
@@ -246,10 +259,10 @@ main {
     top: 0;
     bottom: 90px;
     width: 300px;
-    background: rgba(20, 20, 20, 0.97);
+    background: rgba(20, 20, 20, 0.92);
     padding: 20px;
     overflow-y: auto;
-    z-index: 4;
+    z-index: 5;
     border-left: 1px solid #222;
 }
 
@@ -284,7 +297,7 @@ main {
     position: relative;
     z-index: 1;
     height: 80%;
-    aspect-ratio: 1/1; /* ensures perfect square */
+    aspect-ratio: 1/1;
     object-fit: cover;
     border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);

@@ -14,7 +14,7 @@ home.innerHTML += `<br><div class="row">
             "
         >
             <img
-                src="https://api.codetabs.com/v1/proxy?quest=https://resources.tidal.com/images/e884d40b/a2b3/4d5c/8f31/f4fc523ad506/160x160.jpg"
+                src="${PROXY_VALUE}https://resources.tidal.com/images/e884d40b/a2b3/4d5c/8f31/f4fc523ad506/160x160.jpg"
             />
             <div>twenty one pilots</div>
         </div>
@@ -123,7 +123,7 @@ home.innerHTML += `<br><div class="row">
             "
         >
             <img
-                src="https://api.codetabs.com/v1/proxy?quest=https://resources.tidal.com/images/e9e6bf7e/9d45/45e4/b0e8/c5fad3af1b46/160x160.jpg"
+                src="${PROXY_VALUE}https://resources.tidal.com/images/e9e6bf7e/9d45/45e4/b0e8/c5fad3af1b46/160x160.jpg"
             />
             <div>Golden</div>
         </div>
@@ -181,7 +181,7 @@ home.innerHTML += `<br><div class="row">
             "
         >
             <img
-                src="https://api.codetabs.com/v1/proxy?quest=https://resources.tidal.com/images/5b22b4ad/2358/4418/acae/2a2c226e5945/160x160.jpg"
+                src="${PROXY_VALUE}https://resources.tidal.com/images/5b22b4ad/2358/4418/acae/2a2c226e5945/160x160.jpg"
             />
             <div>IGOR</div>
         </div>

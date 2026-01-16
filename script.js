@@ -1,6 +1,6 @@
-const PROXY_ENABLED = true;
+const PROXY_ENABLED = false;
 const PROXY_VALUE = PROXY_ENABLED
-  ? "https://api.codetabs.com/v1/proxy?quest="
+  ? "https://api.codetabs.com/v1/proxy/?quest="
   : "";
 const API = PROXY_VALUE + "https://triton.squid.wtf";
 // https://tidal.kinoplus.online/
@@ -13,6 +13,7 @@ const lyricsView = document.getElementById("lyricsView");
 const queueView = document.getElementById("queueView");
 const canvas = document.getElementById("visualizer");
 const ctx = canvas.getContext("2d");
+const link = document.querySelector("link[rel~='icon']");
 
 let queue = [],
   index = 0,
@@ -256,6 +257,7 @@ async function loadTrack(trackOrIndex) {
   const img = track?.album?.cover
     ? `${IMG}${track.album.cover.replaceAll("-", "/")}/320x320.jpg`
     : "=";
+  link.href = img;
   document.getElementById("playerCover").src = img;
   document.getElementById("bg").style.backgroundImage = `url(${img})`;
   document.getElementById("playerTitle").textContent =
@@ -276,6 +278,12 @@ async function loadTrack(trackOrIndex) {
       item.classList.remove("current");
     }
   });
+  // sessionStorage queue info
+  let sessionQueue = queue.map((obj) => JSON.stringify(obj)).join(", ");
+  sessionStorage.setItem(
+    "queue",
+    JSON.stringify({ items: sessionQueue, i: index }),
+  );
 
   document.getElementById("playerArtist").onclick = () => {
     if (track.artists?.[0]?.id) {
@@ -285,7 +293,17 @@ async function loadTrack(trackOrIndex) {
         track.artists[0].picture || "",
       );
     }
-  }
+  };
+
+  document.getElementById("playerCover").onclick = () => {
+    console.log(`go to album: `, track.album.id);
+    // fetch the album
+    fetch(`${API}/album/?id=${track.album.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        openAlbum(data.data);
+      });
+  };
 
   // Get track URL (streaming, 206 Partial Content)
   let trackUrl;
@@ -457,7 +475,8 @@ audio.ontimeupdate = () => {
 function openFavorites() {
   showView("favorites");
   const el = document.getElementById("favorites");
-  el.innerHTML = "<h2>Favorites</h2><button id='loadFavorites'>Play All Favorites</button><br><button id='shuffleFavorites'>Shuffle Favorites</button><div id='favoritesList'></div>";
+  el.innerHTML =
+    "<h2>Favorites</h2><button id='loadFavorites'>Play All Favorites</button><br><button id='shuffleFavorites'>Shuffle Favorites</button><div id='favoritesList'></div>";
   document.getElementById("loadFavorites").onclick = loadFavorites;
   document.getElementById("shuffleFavorites").onclick = () => {
     clearQueue();
@@ -486,12 +505,11 @@ function openFavorites() {
     d.oncontextmenu = (e) => {
       e.preventDefault();
       let favs = JSON.parse(localStorage.getItem("favorites") || "[]");
-      favs = favs.filter((track) => track.id !==
-  t.id);
+      favs = favs.filter((track) => track.id !== t.id);
       localStorage.setItem("favorites", JSON.stringify(favs));
       showToast(`Removed "${t.title}" from favorites`);
       openFavorites();
-    }
+    };
     list.appendChild(d);
     list.appendChild(document.createElement("br"));
   });
@@ -509,7 +527,7 @@ function favoriteTrack(track) {
   }
   favorites.push(track);
   localStorage.setItem("favorites", JSON.stringify(favorites));
-    showToast(`Favorited "${track.title}"`);
+  showToast(`Favorited "${track.title}"`);
 }
 
 function loadFavorites() {
@@ -638,8 +656,8 @@ async function openArtist(id, name, pic) {
             } else {
               showToast("Failed to favorite track");
             }
-        });
-      }
+          });
+      };
       container.appendChild(d);
     });
     row.appendChild(container);
@@ -696,7 +714,7 @@ async function openAlbum(al) {
   const minutes = Math.floor(al.duration / 60);
   const seconds = al.duration % 60;
   duration = `${minutes}m ${seconds}s`;
-  console.log(al)
+  console.log(al);
   el.innerHTML = `
   <h2>${al.title}</h2>
   <img src="${IMG}${al.cover.replaceAll("-", "/")}/160x160.jpg">
@@ -716,7 +734,7 @@ async function openAlbum(al) {
     d.oncontextmenu = (e) => {
       e.preventDefault();
       favoriteTrack(t.item);
-    }
+    };
     document.getElementById("albumTracks").appendChild(d);
   });
   document.getElementById("playAll").onclick = () => {
@@ -767,8 +785,26 @@ function draw() {
     const y = canvas.height - (v / 255) * canvas.height;
     const gradient = ctx.createLinearGradient(x, 0, x, canvas.height);
     gradient.addColorStop(0, "#1db954");
-    gradient.addColorStop(1, "transparent");
+    gradient.addColorStop(1, "#002fa7");
     ctx.fillStyle = gradient;
     ctx.fillRect(x, y, barWidth, canvas.height - y);
   });
 }
+
+function loadSessionStorage() {
+  let seekV = seek.value;
+  window.newQueue = JSON.parse(sessionStorage.getItem("queue"));
+  queue = JSON.parse("[" + newQueue.items + "]");
+  index = newQueue.i;
+  updateQueue();
+  loadTrack(index);
+  audio.addEventListener(
+    "loadedmetadata",
+    () => {
+      audio.currentTime = (seekV / 100) * audio.duration;
+    },
+    { once: true },
+  );
+}
+
+if (sessionStorage.getItem("queue")) loadSessionStorage();

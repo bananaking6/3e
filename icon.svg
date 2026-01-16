@@ -1,0 +1,20 @@
+<svg
+  width="256"
+  height="256"
+  viewBox="0 0 256 256"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Background -->
+  <rect width="256" height="256" rx="48" fill="#111827"/>
+
+  <!-- Sound waves -->
+  <path d="M64 96v64" stroke="#22D3EE" stroke-width="10" stroke-linecap="round"/>
+  <path d="M92 80v96" stroke="#22D3EE" stroke-width="10" stroke-linecap="round"/>
+  <path d="M120 96v64" stroke="#22D3EE" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- Play button -->
+  <polygon
+    points="150,88 150,168 208,128"
+    fill="#A78BFA"
+  />
+</svg>
