@@ -178,6 +178,7 @@ function showToast(message) {
 
 // Clear the queue
 function clearQueue() {
+  preloadedAudio = {};
   queue = [];
   index = 0;
   updateQueue();
@@ -216,6 +217,7 @@ function updateQueue() {
       loadTrack(t);
     };
     queueView.appendChild(d);
+    queueView.appendChild(document.createElement("br"));
   });
 }
 
@@ -227,7 +229,7 @@ function toggleQueue() {
 /* --- PLAYER --- */
 
 // Object to hold preloaded next track URLs
-const preloadedAudio = {}; // key: track index, value: URL string
+let preloadedAudio = {}; // key: track index, value: URL string
 
 // Load a track immediately
 async function loadTrack(trackOrIndex) {
@@ -260,6 +262,30 @@ async function loadTrack(trackOrIndex) {
     track.title || "Unknown Title";
   document.getElementById("playerArtist").textContent =
     track.artists?.[0]?.name || "Unknown Artist";
+
+  document.title = `${track.title || "Unknown Title"} - ${
+    track.artists?.[0]?.name || "Unknown Artist"
+  } | 𝚺 Music`;
+
+  // update queue highlight
+  const queueItems = queueView.querySelectorAll("div");
+  queueItems.forEach((item, i) => {
+    if (i === index) {
+      item.classList.add("current");
+    } else {
+      item.classList.remove("current");
+    }
+  });
+
+  document.getElementById("playerArtist").onclick = () => {
+    if (track.artists?.[0]?.id) {
+      openArtist(
+        track.artists[0].id,
+        track.artists[0].name,
+        track.artists[0].picture || "",
+      );
+    }
+  }
 
   // Get track URL (streaming, 206 Partial Content)
   let trackUrl;
@@ -427,6 +453,74 @@ audio.ontimeupdate = () => {
   });
 };
 
+/* --- Favorites Page --- */
+function openFavorites() {
+  showView("favorites");
+  const el = document.getElementById("favorites");
+  el.innerHTML = "<h2>Favorites</h2><button id='loadFavorites'>Play All Favorites</button><br><button id='shuffleFavorites'>Shuffle Favorites</button><div id='favoritesList'></div>";
+  document.getElementById("loadFavorites").onclick = loadFavorites;
+  document.getElementById("shuffleFavorites").onclick = () => {
+    clearQueue();
+    let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
+    // shuffle favorites
+    for (let i = favorites.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [favorites[i], favorites[j]] = [favorites[j], favorites[i]];
+    }
+    favorites.forEach((t) => queue.push(t));
+    index = 0;
+    loadTrack(queue[index]);
+    updateQueue();
+  };
+  const list = document.getElementById("favoritesList");
+  let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
+  if (favorites.length === 0) {
+    list.innerHTML = "<p>No favorite tracks yet.</p>";
+    return;
+  }
+  favorites.forEach((t) => {
+    const d = document.createElement("div");
+    d.className = "song-row";
+    d.textContent = t.title;
+    d.onclick = () => addToQueue(t);
+    d.oncontextmenu = (e) => {
+      e.preventDefault();
+      let favs = JSON.parse(localStorage.getItem("favorites") || "[]");
+      favs = favs.filter((track) => track.id !==
+  t.id);
+      localStorage.setItem("favorites", JSON.stringify(favs));
+      showToast(`Removed "${t.title}" from favorites`);
+      openFavorites();
+    }
+    list.appendChild(d);
+    list.appendChild(document.createElement("br"));
+  });
+}
+
+function favoriteTrack(track) {
+  // add track to localStorage
+  let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
+  // check if track is already in favorites
+  if (favorites.find((t) => t.id === track.id)) {
+    showToast(`Removed "${track.title}" from favorites`);
+    favorites = favorites.filter((t) => t.id !== track.id);
+    localStorage.setItem("favorites", JSON.stringify(favorites));
+    return;
+  }
+  favorites.push(track);
+  localStorage.setItem("favorites", JSON.stringify(favorites));
+    showToast(`Favorited "${track.title}"`);
+}
+
+function loadFavorites() {
+  clearQueue();
+  let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
+  favorites.forEach((t) => queue.push(t));
+  index = 0;
+  loadTrack(queue[index]);
+  updateQueue();
+}
+
 /* --- ARTIST PAGE --- */
 async function openArtist(id, name, pic) {
   showView("artist");
@@ -528,6 +622,24 @@ async function openArtist(id, name, pic) {
       d.className = "song-row";
       d.textContent = t.title;
       d.onclick = () => addToQueue(t);
+      d.oncontextmenu = (e) => {
+        e.preventDefault();
+        console.log("favoriting", t);
+        // fetch the album
+        fetch(`${API}/album/?id=${t.album.id}`)
+          .then((r) => r.json())
+          .then((data) => {
+            const fullTrack = data?.data?.items.find(
+              (item) => item.item.id === t.id,
+            )?.item;
+            if (fullTrack) {
+              favoriteTrack(fullTrack);
+              showToast(`Favorited "${t.title}"`);
+            } else {
+              showToast("Failed to favorite track");
+            }
+        });
+      }
       container.appendChild(d);
     });
     row.appendChild(container);
@@ -601,6 +713,10 @@ async function openAlbum(al) {
     d.className = "song-row";
     d.textContent = t.item.title;
     d.onclick = () => addToQueue(t.item);
+    d.oncontextmenu = (e) => {
+      e.preventDefault();
+      favoriteTrack(t.item);
+    }
     document.getElementById("albumTracks").appendChild(d);
   });
   document.getElementById("playAll").onclick = () => {

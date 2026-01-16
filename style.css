@@ -38,7 +38,7 @@ button {
     z-index: 1;
 }
 
-#playAll, #shufflePlay {
+#playAll, #shufflePlay, #loadFavorites, #shuffleFavorites {
     margin: 15px 0;
     padding: 10px 15px;
     background: #1a1a1a;
@@ -256,6 +256,11 @@ main {
 #queueView div:hover {
     cursor: pointer;
     color: cornflowerblue;
+}
+
+#queueView div.current {
+    font-weight: bold;
+    color: #1db954;
 }
 
 /* --- Artist Banner --- */
