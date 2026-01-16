@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>𝚺 Music</title>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <canvas id="visualizer"></canvas>
+        <div
+            id="bg"
+            style="
+                position: fixed;
+                inset: 0;
+                background-size: cover;
+                filter: blur(25px);
+                opacity: 0.2;
+                z-index: -2;
+            "
+        ></div>
+        <div id="app">
+            <aside class="sidebar">
+                <h1>𝚺 Music</h1>
+                <button onclick="showView('home')">Home</button>
+                <button onclick="showView('search')">Search</button>
+            </aside>
+            <main>
+                <section id="home" class="view">
+                    <h2>Listen Now</h2>
+                    <p>Search for artists, songs, albums, and playlists.</p>
+                </section>
+                <section id="search" class="view hidden">
+                    <input
+                        id="searchInput"
+                        placeholder="Search music…"
+                        value="twenty one pilots"
+                    />
+                    <div id="searchResults"></div>
+                </section>
+                <section id="artist" class="view hidden"></section>
+                <section id="album" class="view hidden"></section>
+            </main>
+            <footer class="player">
+                <img id="playerCover" />
+                <div>
+                    <div id="playerTitle"></div>
+                    <div id="playerArtist"></div>
+                    <input type="range" id="seek" />
+                </div>
+                <button onclick="prev()">⏮</button>
+                <button onclick="togglePlay()">⏯</button>
+                <button onclick="next()">⏭</button>
+                <button onclick="toggleLyrics()">🎤</button>
+                <button onclick="toggleQueue()">☰</button>
+            </footer>
+        </div>
+        <div id="lyricsView" class="hidden"></div>
+        <div id="queueView" class="hidden"></div>
+        <audio id="audio" crossorigin="anonymous"></audio>
+        <script src="adddemo.js"></script>
+        <script src="script.js"></script>
+    </body>
+</html>
