@@ -163,8 +163,7 @@ main {
 }
 
 /* --- Player Footer --- */
-.player {
-    grid-column: 1 / -1;
+.player-footer {
     display: flex;
     align-items: center;
     gap: 15px;
@@ -173,43 +172,127 @@ main {
     backdrop-filter: blur(12px);
     border-top: 1px solid #222;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+    color: #f9fafb;
+    font-family: sans-serif;
+    width: 100vw;
 }
-.player img {
+
+.player-footer img {
     width: 60px;
     border-radius: 8px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
 }
-.player img:hover {
+
+.player-footer img:hover {
     cursor: pointer;
     border: 3px dashed #1db954;
     padding: 5px;
 }
-.player div {
-    flex: 1;
+
+.player-info {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
+    flex: 1;
 }
+
+#playerTitle {
+    font-weight: bold;
+}
+
 #playerArtist:hover {
     color: #1db954;
     font-weight: bold;
     cursor: pointer;
 }
-#seek {
+
+.player-seek-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     width: 100%;
-    border-radius: 2px;
-    background: #222;
-    accent-color: #1db954;
+    min-width: 150px;
 }
-.player button {
+
+.time-label {
+    font-size: 0.85rem;
+    width: 40px;
+    text-align: center;
+}
+
+.seek-bar {
+    flex: 1;
+    height: 6px;
+    min-width: 60px;
+    background: #374151;
+    border-radius: 999px;
+    position: relative;
+    cursor: pointer;
+    transition: height 0.2s ease;
+}
+
+.seek-bar:hover {
+    height: 10px;
+}
+
+.buffer-bar {
+    position: absolute;
+    height: 100%;
+    width: 0%;
+    background: #6b7280;
+    border-radius: inherit;
+}
+
+.progress-bar {
+    position: absolute;
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #8b5cf6, #22d3ee);
+    border-radius: inherit;
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.8);
+    pointer-events: none;
+}
+
+.seek-indicator {
+    position: absolute;
+    top: -6px;
+    width: 3px;
+    height: 18px;
+    background: white;
+    border-radius: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.time-tooltip {
+    position: absolute;
+    top: -28px;
+    padding: 3px 6px;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    transform: translateX(-50%);
+    opacity: 0;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.player-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.player-controls button {
     font-size: 1.1rem;
     padding: 8px 12px;
     background: #1a1a1a;
     border-radius: 8px;
     color: #fff;
-    width: 50px;
+    cursor: pointer;
 }
-.player button:hover {
+
+.player-controls button:hover {
     background: #1db954;
     color: #000;
 }
@@ -222,34 +305,52 @@ main {
     right: 0;
     bottom: 90px;
     padding: 50px 30px;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(6px);
     overflow-y: auto;
-    z-index: 4;
+    z-index: 999;
     text-align: center;
+    font-family: "Segoe UI", sans-serif;
+    white-space: pre-wrap; /* keep spaces and line breaks */
 }
+
+.lyric-line {
+    margin-bottom: 10px; /* space between lines */
+}
+
 .word {
     font-size: 26px;
     opacity: 0.25;
     transition:
-        opacity 0.2s linear,
-        transform 0.2s ease;
+        opacity 0.3s ease,
+        transform 0.3s ease,
+        color 0.3s ease,
+        text-shadow 0.3s ease;
     cursor: pointer;
-    white-space: pre;
+    user-select: none;
 }
 
 .word:hover {
-    opacity: 1;
-    color: #002fa7;
+    opacity: 0.6;
+    transform: scale(1.05);
+    color: #4f8cff;
+    text-shadow: 0 0 5px #4f8cff;
 }
 
 .word.active {
     opacity: 1;
     color: #1db954;
     transform: scale(1.1);
+    text-shadow:
+        0 0 12px #1db954,
+        0 0 24px rgba(29, 185, 84, 0.5);
 }
 
-.word.active:hover {
-    color: darkgreen;
+/* Keep old active words still green but remove pulsing/animation */
+.word.active.old {
+    opacity: 0.7;
+    transform: scale(1);
+    text-shadow: 0 0 6px #1db954;
 }
 
 /* --- Queue --- */

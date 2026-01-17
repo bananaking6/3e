@@ -8,7 +8,6 @@ const LYRICS_WORKER =
   PROXY_VALUE + "https://lyricsplus.prjktla.workers.dev/v2/lyrics/get";
 const IMG = PROXY_VALUE + "https://resources.tidal.com/images/";
 const audio = document.getElementById("audio");
-const seek = document.getElementById("seek");
 const lyricsView = document.getElementById("lyricsView");
 const queueView = document.getElementById("queueView");
 const canvas = document.getElementById("visualizer");
@@ -268,6 +267,11 @@ async function loadTrack(trackOrIndex) {
   document.title = `${track.title || "Unknown Title"} - ${
     track.artists?.[0]?.name || "Unknown Artist"
   } | 𝚺 Music`;
+  // set global color
+  document.documentElement.style.setProperty(
+    "--main-color",
+    track.album.vibrantColor,
+  );
 
   // update queue highlight
   const queueItems = queueView.querySelectorAll("div");
@@ -278,12 +282,7 @@ async function loadTrack(trackOrIndex) {
       item.classList.remove("current");
     }
   });
-  // sessionStorage queue info
-  let sessionQueue = queue.map((obj) => JSON.stringify(obj)).join(", ");
-  sessionStorage.setItem(
-    "queue",
-    JSON.stringify({ items: sessionQueue, i: index }),
-  );
+  saveSessionStorage();
 
   document.getElementById("playerArtist").onclick = () => {
     if (track.artists?.[0]?.id) {
@@ -313,6 +312,8 @@ async function loadTrack(trackOrIndex) {
     trackUrl = await getTrackUrl(track);
   }
 
+  console.log("downloadSong", track, trackUrl, img);
+
   // Swap audio instantly
   audio.src = trackUrl;
   initAudioContext();
@@ -334,7 +335,7 @@ async function preloadTrack(track, trackIndex) {
 // Get streaming track URL
 async function getTrackUrl(track) {
   const res = await fetch(
-    `${API}/track/?id=${track.id}${PROXY_ENABLED ? "%26" : "&"}quality=LOSSLESS`,
+    `${API}/track/?id=${track.id}${PROXY_ENABLED ? "%26" : "&"}quality=LOW`,
   );
   const data = await res.json();
   const trackUrl = PROXY_ENABLED
@@ -439,7 +440,7 @@ async function loadLyrics(track) {
 }
 
 audio.ontimeupdate = () => {
-  seek.value = (audio.currentTime / audio.duration) * 100 || 0;
+  saveSessionStorage();
   if (!words.length) return;
 
   const now = audio.currentTime * 1000;
@@ -791,20 +792,133 @@ function draw() {
   });
 }
 
+function saveSessionStorage() {
+  // sessionStorage queue info
+  let sessionQueue = queue.map((obj) => JSON.stringify(obj)).join(", ");
+  sessionStorage.setItem(
+    "queue",
+    JSON.stringify({
+      items: sessionQueue,
+      i: index,
+      currentTime: audio.currentTime,
+    }),
+  );
+}
+
 function loadSessionStorage() {
-  let seekV = seek.value;
   window.newQueue = JSON.parse(sessionStorage.getItem("queue"));
   queue = JSON.parse("[" + newQueue.items + "]");
   index = newQueue.i;
   updateQueue();
   loadTrack(index);
-  audio.addEventListener(
-    "loadedmetadata",
-    () => {
-      audio.currentTime = (seekV / 100) * audio.duration;
-    },
-    { once: true },
-  );
+  audio.currentTime = newQueue.currentTime;
 }
 
 if (sessionStorage.getItem("queue")) loadSessionStorage();
+
+const seekBar = document.getElementById("seekBar");
+const progressBar = document.getElementById("progressBar");
+const bufferBar = document.getElementById("bufferBar");
+const seekIndicator = document.getElementById("seekIndicator");
+const timeTooltip = document.getElementById("timeTooltip");
+const currentTimeEl = document.getElementById("currentTime");
+const totalTimeEl = document.getElementById("totalTime");
+
+let isDragging = false;
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function updateProgress() {
+  if (!audio.duration) return;
+
+  const pct = (audio.currentTime / audio.duration) * 100;
+  progressBar.style.width = pct + "%";
+  currentTimeEl.textContent = formatTime(audio.currentTime);
+  totalTimeEl.textContent = formatTime(audio.duration);
+
+  if (audio.buffered.length) {
+    const end = audio.buffered.end(audio.buffered.length - 1);
+    bufferBar.style.width = (end / audio.duration) * 100 + "%";
+  }
+}
+
+function seek(clientX) {
+  const rect = seekBar.getBoundingClientRect();
+  const pct = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+  audio.currentTime = pct * audio.duration;
+}
+
+// Mouse
+seekBar.addEventListener("mousedown", (e) => {
+  isDragging = true;
+  seek(e.clientX);
+});
+window.addEventListener("mousemove", (e) => {
+  if (isDragging) seek(e.clientX);
+});
+window.addEventListener("mouseup", () => (isDragging = false));
+
+// Touch
+seekBar.addEventListener("touchstart", (e) => {
+  isDragging = true;
+  seek(e.touches[0].clientX);
+});
+seekBar.addEventListener("touchmove", (e) => {
+  if (isDragging) {
+    seek(e.touches[0].clientX);
+    e.preventDefault();
+  }
+});
+seekBar.addEventListener("touchend", () => (isDragging = false));
+
+// Hover tooltip
+seekBar.addEventListener("mousemove", (e) => {
+  const rect = seekBar.getBoundingClientRect();
+  const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+  const hoverTime = audio.duration * pct;
+
+  seekIndicator.style.left = pct * 100 + "%";
+  seekIndicator.style.opacity = 1;
+
+  timeTooltip.textContent = formatTime(hoverTime);
+  timeTooltip.style.left = pct * 100 + "%";
+  timeTooltip.style.opacity = 1;
+});
+
+seekBar.addEventListener("mouseleave", () => {
+  seekIndicator.style.opacity = 0;
+  timeTooltip.style.opacity = 0;
+});
+
+// Auto update
+audio.addEventListener("timeupdate", updateProgress);
+audio.addEventListener("progress", updateProgress);
+audio.addEventListener("loadedmetadata", updateProgress);
+
+function downloadSong(track, mp3Url, coverUrl) {
+  // Create a filename-friendly version of the track title
+  const fileName = `${track.title} - ${track.artists.map((a) => a.name).join(", ")}.mp3`;
+
+  // Download the MP3
+  fetch(mp3Url)
+    .then((response) => {
+      if (!response.ok) throw new Error("Network response was not ok");
+      return response.blob();
+    })
+    .then((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      console.log(`Downloaded "${fileName}"`);
+    })
+    .catch((error) => console.error("Error downloading MP3:", error));
+}

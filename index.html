@@ -44,18 +44,39 @@
                 <section id="album" class="view hidden"></section>
                 <section id="favorites" class="view hidden"></section>
             </main>
-            <footer class="player">
-                <img id="playerCover" />
-                <div>
-                    <div id="playerTitle"></div>
-                    <div id="playerArtist"></div>
-                    <input type="range" id="seek" />
+            <footer class="player-footer">
+                <img id="playerCover" alt="Album Cover" />
+
+                <div class="player-info">
+                    <div id="playerTitle">Song Title</div>
+                    <div id="playerArtist">Artist Name</div>
+
+                    <div class="player-seek-container">
+                        <span class="time-label" id="currentTime">0:00</span>
+
+                        <div class="seek-bar" id="seekBar">
+                            <div class="buffer-bar" id="bufferBar"></div>
+                            <div class="progress-bar" id="progressBar"></div>
+                            <div
+                                class="seek-indicator"
+                                id="seekIndicator"
+                            ></div>
+                            <div class="time-tooltip" id="timeTooltip">
+                                0:00
+                            </div>
+                        </div>
+
+                        <span class="time-label" id="totalTime">0:00</span>
+                    </div>
                 </div>
-                <button onclick="prev()">⏮</button>
-                <button onclick="togglePlay()">⏯</button>
-                <button onclick="next()">⏭</button>
-                <button onclick="toggleLyrics()">🎤</button>
-                <button onclick="toggleQueue()">☰</button>
+
+                <div class="player-controls">
+                    <button onclick="prev()">⏮</button>
+                    <button onclick="togglePlay()">⏯</button>
+                    <button onclick="next()">⏭</button>
+                    <button onclick="toggleLyrics()">🎤</button>
+                    <button onclick="toggleQueue()">☰</button>
+                </div>
             </footer>
         </div>
         <div id="lyricsView" class="hidden"></div>
