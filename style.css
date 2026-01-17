@@ -1,3 +1,8 @@
+:root {
+    --main-color: #1db954;
+    --secondary-color: darkgreen;
+}
+
 /* --- Reset & Global --- */
 * {
     margin: 0;
@@ -18,7 +23,7 @@ body {
     display: none !important;
 }
 a {
-    color: #1db954;
+    color: var(--main-color);
     text-decoration: none;
 }
 button {
@@ -71,7 +76,7 @@ button {
     font-weight: 500;
 }
 .sidebar button:hover {
-    background: #1db954;
+    background: var(--main-color);
     color: #000;
 }
 
@@ -133,7 +138,7 @@ main {
     transition: all 0.15s ease;
 }
 .song-row:hover {
-    color: #1db954;
+    color: var(--main-color);
 }
 
 /* --- Search Page --- */
@@ -152,7 +157,7 @@ main {
 }
 
 #searchInput:focus {
-    border-color: #1db954;
+    border-color: var(--main-color);
     box-shadow: 0 0 5px rgba(29, 185, 84, 0.5);
     background-color: #333;
 }
@@ -175,6 +180,10 @@ main {
     color: #f9fafb;
     font-family: sans-serif;
     width: 100vw;
+    height: 90px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
 }
 
 .player-footer img {
@@ -185,8 +194,7 @@ main {
 
 .player-footer img:hover {
     cursor: pointer;
-    border: 3px dashed #1db954;
-    padding: 5px;
+    border: 4px solid var(--main-color);
 }
 
 .player-info {
@@ -201,7 +209,7 @@ main {
 }
 
 #playerArtist:hover {
-    color: #1db954;
+    color: var(--main-color);
     font-weight: bold;
     cursor: pointer;
 }
@@ -247,7 +255,11 @@ main {
     position: absolute;
     height: 100%;
     width: 0%;
-    background: linear-gradient(90deg, #8b5cf6, #22d3ee);
+    background: linear-gradient(
+        90deg,
+        var(--main-color),
+        var(--secondary-color)
+    );
     border-radius: inherit;
     box-shadow: 0 0 8px rgba(139, 92, 246, 0.8);
     pointer-events: none;
@@ -293,11 +305,11 @@ main {
 }
 
 .player-controls button:hover {
-    background: #1db954;
+    background: var(--main-color);
     color: #000;
 }
 
-/* --- Lyrics --- */
+/* --- Lyrics Widget --- */
 #lyricsView {
     position: fixed;
     top: 0;
@@ -312,6 +324,7 @@ main {
     text-align: center;
     font-family: "Segoe UI", sans-serif;
     white-space: pre-wrap; /* keep spaces and line breaks */
+    font-size: 26px;
 }
 
 .lyric-line {
@@ -339,21 +352,31 @@ main {
 
 .word.active {
     opacity: 1;
-    color: #1db954;
+    color: var(--main-color);
     transform: scale(1.1);
     text-shadow:
-        0 0 12px #1db954,
+        0 0 12px var(--main-color),
         0 0 24px rgba(29, 185, 84, 0.5);
 }
 
-/* Keep old active words still green but remove pulsing/animation */
 .word.active.old {
     opacity: 0.7;
     transform: scale(1);
-    text-shadow: 0 0 6px #1db954;
+    text-shadow: 0 0 6px var(--secondary-color);
 }
 
-/* --- Queue --- */
+.lyric-line.active {
+    color: var(--main-color);
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+.lyric-line.active.old {
+    color: rgba(29, 185, 84, 0.6);
+    font-weight: normal;
+}
+
+/* --- Queue Widget --- */
 #queueView {
     position: fixed;
     right: 0;
@@ -374,7 +397,7 @@ main {
 
 #queueView div.current {
     font-weight: bold;
-    color: #1db954;
+    color: var(--main-color);
 }
 
 /* --- Artist Banner --- */

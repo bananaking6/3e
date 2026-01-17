@@ -266,11 +266,32 @@ async function loadTrack(trackOrIndex) {
 
   document.title = `${track.title || "Unknown Title"} - ${
     track.artists?.[0]?.name || "Unknown Artist"
-  } | 𝚺 Music`;
+  }`;
   // set global color
+  // Function to lighten/darken a hex color
+  function adjustColor(hex, percent) {
+    let num = parseInt(hex.slice(1), 16);
+    let r = (num >> 16) & 0xff;
+    let g = (num >> 8) & 0xff;
+    let b = num & 0xff;
+
+    r = Math.min(255, Math.max(0, r + percent));
+    g = Math.min(255, Math.max(0, g + percent));
+    b = Math.min(255, Math.max(0, b + percent));
+
+    return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+  }
+
+  // Set main and secondary colors dynamically
   document.documentElement.style.setProperty(
     "--main-color",
     track.album.vibrantColor,
+  );
+
+  // Secondary color: 40 lighter (positive) or darker (negative)
+  document.documentElement.style.setProperty(
+    "--secondary-color",
+    adjustColor(track.album.vibrantColor, -50),
   );
 
   // update queue highlight
@@ -382,13 +403,12 @@ audio.onended = next;
 async function loadLyrics(track) {
   lyricsView.innerHTML = "";
   words = [];
+  lines = []; // store line timing info
 
   try {
     let url = `${LYRICS_WORKER}?title=${encodeURIComponent(
       track.title,
-    )}&artist=${encodeURIComponent(
-      track.artists?.[0]?.name || "",
-    )}&duration=${Math.floor(track.duration)}&type=Word`;
+    )}&artist=${encodeURIComponent(track.artists?.[0]?.name || "")}&duration=${Math.floor(track.duration)}&type=Word`;
 
     if (PROXY_ENABLED) url = url.replaceAll("%20", "_").replaceAll("&", "%26");
 
@@ -396,10 +416,17 @@ async function loadLyrics(track) {
 
     if (data?.lyrics?.length) {
       data.lyrics.forEach((line) => {
-        // container for one lyric line
         const lineDiv = document.createElement("div");
         lineDiv.className = "lyric-line";
         lineDiv.dataset.time = line.time;
+        lineDiv.dataset.duration = line.duration || 2000; // fallback for line duration
+
+        // store line info for line-level timing
+        lines.push({
+          time: line.time,
+          duration: line.duration || 2000,
+          el: lineDiv,
+        });
 
         if (line.syllabus?.length) {
           line.syllabus.forEach((w) => {
@@ -424,8 +451,14 @@ async function loadLyrics(track) {
             words.push(word);
           });
         } else {
-          // fallback if no word timings
+          // fallback line (no word timing)
           lineDiv.textContent = line.text;
+
+          // --- Add click support for line elements ---
+          lineDiv.style.cursor = "pointer";
+          lineDiv.onclick = () => {
+            audio.currentTime = line.time / 1000;
+          };
         }
 
         lyricsView.appendChild(lineDiv);
@@ -441,12 +474,12 @@ async function loadLyrics(track) {
 
 audio.ontimeupdate = () => {
   saveSessionStorage();
-  if (!words.length) return;
+  if (!words.length && !lines.length) return;
 
-  const now = audio.currentTime * 1000;
+  const now = audio.currentTime * 1000; // in ms
+  let currentWordOrLine = null;
 
-  let currentWord = null;
-
+  // --- Word by word highlighting ---
   for (let i = 0; i < words.length; i++) {
     const w = words[i];
     const start = w.time;
@@ -456,17 +489,37 @@ audio.ontimeupdate = () => {
       const progress = (now - start) / w.duration;
       w.el.classList.add("active");
       w.el.style.setProperty("--p", progress);
-      currentWord = w;
+      currentWordOrLine = w;
     } else if (now > end) {
+      w.el.classList.add("old");
       w.el.classList.add("active");
       w.el.style.setProperty("--p", 1);
     } else {
       w.el.classList.remove("active");
+      w.el.classList.remove("old");
       w.el.style.setProperty("--p", 0);
     }
   }
 
-  currentWord?.el.scrollIntoView({
+  // --- Line by line highlighting fallback ---
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const start = line.time;
+    const end = line.time + line.duration;
+
+    if (now >= start && now <= end) {
+      const progress = (now - start) / line.duration;
+      line.el.classList.add("active");
+      line.el.style.setProperty("--p", progress);
+      currentWordOrLine ??= { el: line.el }; // scroll line if no word active
+    } else if (now > end || now < start) {
+      line.el.classList.remove("active");
+      line.el.style.setProperty("--p", 0);
+    }
+  }
+
+  // Scroll currently active word or line into view
+  currentWordOrLine?.el.scrollIntoView({
     block: "center",
     behavior: "smooth",
   });
