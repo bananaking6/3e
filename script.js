@@ -150,19 +150,8 @@ function renderPlaylists(d, c) {
 // Simple toast function
 function showToast(message) {
   const toast = document.createElement("div");
+  toast.classList.add("toast");
   toast.textContent = message;
-  toast.style.position = "fixed";
-  toast.style.bottom = "120px";
-  toast.style.left = "50%";
-  toast.style.transform = "translateX(-50%)";
-  toast.style.background = "#1db954"; // green accent
-  toast.style.color = "#fff";
-  toast.style.padding = "10px 20px";
-  toast.style.borderRadius = "6px";
-  toast.style.boxShadow = "0 2px 10px rgba(0,0,0,0.4)";
-  toast.style.zIndex = 1000;
-  toast.style.opacity = 0;
-  toast.style.transition = "opacity 0.3s ease";
 
   document.body.appendChild(toast);
 
@@ -262,7 +251,7 @@ async function loadTrack(trackOrIndex) {
   document.getElementById("playerTitle").textContent =
     track.title || "Unknown Title";
   document.getElementById("playerArtist").textContent =
-    track.artists?.[0]?.name || "Unknown Artist";
+    `${track.artists?.[0]?.name || "Unknown Artist"} - ${track.album.title || ""}`;
 
   document.title = `${track.title || "Unknown Title"} - ${
     track.artists?.[0]?.name || "Unknown Artist"
@@ -783,7 +772,7 @@ async function openAlbum(al) {
   tracks.forEach((t) => {
     const d = document.createElement("div");
     d.className = "song-row";
-    d.textContent = t.item.title;
+    d.innerHTML = `${t.item.title} ${t.item.explicit ? '<img src="e.svg">' : ""} <span class="right">${formatTime(t.item.duration)} ${t.item.bpm ? " • " + t.item.bpm + " BPM " : ""} ${t.item.key ? " • " + t.item.key : ""}</span>`;
     d.onclick = () => addToQueue(t.item);
     d.oncontextmenu = (e) => {
       e.preventDefault();

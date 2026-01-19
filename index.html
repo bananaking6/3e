@@ -29,15 +29,53 @@
             </aside>
             <main>
                 <section id="home" class="view">
-                    <h2>Listen Now</h2>
-                    <p>Search for artists, songs, albums, and playlists.</p>
+                    <div class="home-hero">
+                        <h2 class="home-title">Welcome to 𝚺 Music</h2>
+                        <p class="home-subtitle">
+                            Discover and stream your favorite music
+                        </p>
+                        <div class="home-actions">
+                            <button
+                                onclick="showView('search')"
+                                class="home-button"
+                            >
+                                🔍 Start Searching
+                            </button>
+                            <button
+                                onclick="openFavorites()"
+                                class="home-button secondary"
+                            >
+                                ⭐ View Favorites
+                            </button>
+                        </div>
+                    </div>
+                    <div class="home-features">
+                        <div class="feature-card">
+                            <div class="feature-icon">🎵</div>
+                            <h3>Millions of Songs</h3>
+                            <p>Access a vast library of music</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🎤</div>
+                            <h3>Synced Lyrics</h3>
+                            <p>Sing along with real-time lyrics</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">📋</div>
+                            <h3>Queue Management</h3>
+                            <p>Create your perfect playlist</p>
+                        </div>
+                    </div>
                 </section>
                 <section id="search" class="view hidden">
-                    <input
-                        id="searchInput"
-                        placeholder="Search music…"
-                        value="twenty one pilots"
-                    />
+                    <div class="search-header">
+                        <h2>Search</h2>
+                        <input
+                            id="searchInput"
+                            placeholder="Search for artists, songs, albums..."
+                            value="twenty one pilots"
+                        />
+                    </div>
                     <div id="searchResults"></div>
                 </section>
                 <section id="artist" class="view hidden"></section>
