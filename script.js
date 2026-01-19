@@ -516,49 +516,19 @@ audio.ontimeupdate = () => {
 
 /* --- Favorites Page --- */
 function openFavorites() {
-  showView("favorites");
-  const el = document.getElementById("favorites");
-  el.innerHTML =
-    "<h2>Favorites</h2><button id='loadFavorites'>Play All Favorites</button><br><button id='shuffleFavorites'>Shuffle Favorites</button><div id='favoritesList'></div>";
-  document.getElementById("loadFavorites").onclick = loadFavorites;
-  document.getElementById("shuffleFavorites").onclick = () => {
-    clearQueue();
-    let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
-    // shuffle favorites
-    for (let i = favorites.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [favorites[i], favorites[j]] = [favorites[j], favorites[i]];
-    }
-    favorites.forEach((t) => queue.push(t));
-    index = 0;
-    loadTrack(queue[index]);
-    updateQueue();
-  };
-  const list = document.getElementById("favoritesList");
-  let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
-  if (favorites.length === 0) {
-    list.innerHTML = "<p>No favorite tracks yet.</p>";
-    return;
-  }
-  favorites.forEach((t) => {
-    const d = document.createElement("div");
-    d.className = "song-row";
-    d.textContent = t.title;
-    d.onclick = () => addToQueue(t);
-    d.oncontextmenu = (e) => {
-      e.preventDefault();
-      let favs = JSON.parse(localStorage.getItem("favorites") || "[]");
-      favs = favs.filter((track) => track.id !== t.id);
-      localStorage.setItem("favorites", JSON.stringify(favs));
-      showToast(`Removed "${t.title}" from favorites`);
-      openFavorites();
-    };
-    list.appendChild(d);
-    list.appendChild(document.createElement("br"));
+  openAlbum({
+    title: "FAVORITES",
+    type: "PLAYLIST",
+    cover: "5b22b4ad-2358-4418-acae-2a2c226e5945",
+    artists: [{ name: "You" }],
+    playlistTracks: JSON.parse(localStorage.favorites),
+    duration: localStorage.favoritesDuration,
+    numberOfTracks: localStorage.favoritesLength,
   });
 }
 
-function favoriteTrack(track) {
+function favoriteTrack(track, e) {
+  if (e) e.preventDefault();
   // add track to localStorage
   let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
   // check if track is already in favorites
@@ -566,20 +536,23 @@ function favoriteTrack(track) {
     showToast(`Removed "${track.title}" from favorites`);
     favorites = favorites.filter((t) => t.id !== track.id);
     localStorage.setItem("favorites", JSON.stringify(favorites));
+    localStorage.setItem("favoritesLength", favorites.length);
+    let duration = 0;
+    favorites.forEach((t) => {
+      duration += t.duration;
+    });
+    localStorage.setItem("favoritesDuration", duration);
     return;
   }
   favorites.push(track);
   localStorage.setItem("favorites", JSON.stringify(favorites));
+  localStorage.setItem("favoritesLength", favorites.length);
+  let duration = 0;
+  favorites.forEach((t) => {
+    duration += t.duration;
+  });
+  localStorage.setItem("favoritesDuration", duration);
   showToast(`Favorited "${track.title}"`);
-}
-
-function loadFavorites() {
-  clearQueue();
-  let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
-  favorites.forEach((t) => queue.push(t));
-  index = 0;
-  loadTrack(queue[index]);
-  updateQueue();
 }
 
 /* --- ARTIST PAGE --- */
@@ -753,22 +726,27 @@ async function openAlbum(al) {
     month: "long",
     day: "numeric",
   });
-  // format al.duration in minutes and seconds
-  const minutes = Math.floor(al.duration / 60);
-  const seconds = al.duration % 60;
-  duration = `${minutes}m ${seconds}s`;
   console.log(al);
   el.innerHTML = `
   <h2>${al.title}</h2>
   <img src="${IMG}${al.cover.replaceAll("-", "/")}/160x160.jpg">
-  <h3>${al.artists[0].name} - ${releaseDate}</h3>
-  <span id="albumInfo">${al.numberOfTracks} songs • ${duration} • ${al.copyright}</span><br>
+  <h3>${al.artists[0].name}${al.releaseDate ? " - " + releaseDate : ""}</h3>
+  <span id="albumInfo">${al.numberOfTracks} songs • ${formatTime(al.duration)}${al.copyright ? " • " + al.copyright : ""}</span><br>
   <button id="playAll">▶ Play All</button>
   <button id="shufflePlay">🔀 Shuffle Play</button>
   <div id="albumTracks"></div>
   `;
-  const data = await fetch(`${API}/album/?id=${al.id}`).then((r) => r.json());
-  const tracks = data?.data?.items || [];
+  let tracks = [];
+  if (al.type == "PLAYLIST") {
+    // Custom Playlist: use stored tracks
+    tracks = al.playlistTracks.map((t) => ({ item: t }));
+  } else {
+    // Regular album: fetch from API
+    const data = await fetch(`${API}/album/?id=${al.id}`).then((r) => r.json());
+    tracks = data?.data?.items || [];
+    console.log(tracks);
+  }
+
   tracks.forEach((t) => {
     const d = document.createElement("div");
     d.className = "song-row";
