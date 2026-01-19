@@ -4,8 +4,7 @@ const PROXY_VALUE = PROXY_ENABLED
   : "";
 const API = PROXY_VALUE + "https://triton.squid.wtf";
 // https://tidal.kinoplus.online/
-const LYRICS_WORKER =
-  PROXY_VALUE + "https://lyricsplus.prjktla.workers.dev/v2/lyrics/get";
+const LYRICS_WORKER = "https://lyricsplus.prjktla.workers.dev/v2/lyrics/get";
 const IMG = PROXY_VALUE + "https://resources.tidal.com/images/";
 const audio = document.getElementById("audio");
 const lyricsView = document.getElementById("lyricsView");
@@ -305,7 +304,6 @@ async function loadTrack(trackOrIndex) {
   };
 
   document.getElementById("playerCover").onclick = () => {
-    console.log(`go to album: `, track.album.id);
     // fetch the album
     fetch(`${API}/album/?id=${track.album.id}`)
       .then((r) => r.json())
@@ -322,7 +320,7 @@ async function loadTrack(trackOrIndex) {
     trackUrl = await getTrackUrl(track);
   }
 
-  console.log("downloadSong", track, trackUrl, img);
+  //console.log("downloadSong", track, trackUrl, img);
 
   // Swap audio instantly
   audio.src = trackUrl;
@@ -398,6 +396,8 @@ async function loadLyrics(track) {
     let url = `${LYRICS_WORKER}?title=${encodeURIComponent(
       track.title,
     )}&artist=${encodeURIComponent(track.artists?.[0]?.name || "")}&duration=${Math.floor(track.duration)}&type=Word`;
+
+    url = `https://api.codetabs.com/v1/proxy/?quest=${LYRICS_WORKER}?isrc=${track.isrc}`;
 
     if (PROXY_ENABLED) url = url.replaceAll("%20", "_").replaceAll("&", "%26");
 
@@ -658,7 +658,6 @@ async function openArtist(id, name, pic) {
       d.onclick = () => addToQueue(t);
       d.oncontextmenu = (e) => {
         e.preventDefault();
-        console.log("favoriting", t);
         // fetch the album
         fetch(`${API}/album/?id=${t.album.id}`)
           .then((r) => r.json())
@@ -726,7 +725,6 @@ async function openAlbum(al) {
     month: "long",
     day: "numeric",
   });
-  console.log(al);
   el.innerHTML = `
   <h2>${al.title}</h2>
   <img src="${IMG}${al.cover.replaceAll("-", "/")}/160x160.jpg">
@@ -744,7 +742,6 @@ async function openAlbum(al) {
     // Regular album: fetch from API
     const data = await fetch(`${API}/album/?id=${al.id}`).then((r) => r.json());
     tracks = data?.data?.items || [];
-    console.log(tracks);
   }
 
   tracks.forEach((t) => {

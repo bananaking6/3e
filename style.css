@@ -253,13 +253,6 @@ main {
     color: var(--main-color);
 }
 
-.home-features {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: var(--space-xl);
-    margin-top: 40px;
-}
-
 .feature-card {
     background: var(--bg-secondary);
     padding: 30px;
@@ -862,10 +855,6 @@ main {
 
     .home-subtitle {
         font-size: 1.1rem;
-    }
-
-    .home-features {
-        grid-template-columns: 1fr;
     }
 
     .home-actions {
