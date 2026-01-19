@@ -838,8 +838,12 @@ function draw() {
     const x = i * barWidth;
     const y = canvas.height - (v / 255) * canvas.height;
     const gradient = ctx.createLinearGradient(x, 0, x, canvas.height);
-    gradient.addColorStop(0, "#1db954");
-    gradient.addColorStop(1, "#002fa7");
+    const computedStyles = window.getComputedStyle(document.body);
+    gradient.addColorStop(0, computedStyles.getPropertyValue("--main-color"));
+    gradient.addColorStop(
+      1,
+      computedStyles.getPropertyValue("--secondary-color"),
+    );
     ctx.fillStyle = gradient;
     ctx.fillRect(x, y, barWidth, canvas.height - y);
   });
