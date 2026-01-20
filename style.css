@@ -168,6 +168,7 @@ main {
         #fff 100%
     );
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     background-size: 200% auto;
     animation: shine 5s linear infinite;
@@ -278,6 +279,8 @@ main {
     border-radius: var(--radius-md);
     transition: background var(--transition-fast);
     cursor: pointer;
+    max-height: 250px;
+    overflow: hidden;
 }
 
 .card:hover {
@@ -285,7 +288,7 @@ main {
 }
 
 .card img {
-    width: 100%;
+    width: 160px;
     aspect-ratio: 1;
     object-fit: cover;
     border-radius: var(--radius-sm);

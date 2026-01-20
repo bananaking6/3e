@@ -60,8 +60,9 @@ async function searchSection(title, param, q, render) {
 /* --- CARD --- */
 function card(img, title, onclick) {
   const d = document.createElement("div");
+  d.title = title;
   d.className = "card";
-  d.innerHTML = `<img src="${img || ""}"><div>${title}</div>`;
+  d.innerHTML = `<img src="${img || ""}"><span>${title}</span>`;
 
   // Left click
   d.onclick = onclick;
@@ -402,6 +403,93 @@ async function loadLyrics(track) {
   lines = []; // store line timing info
 
   try {
+    /*
+    console.log(track.artist);
+    let url = `https://lyrics.paxsenix.org/apple-music/search?q=${encodeURIComponent(
+      track.title + " " + track.artist.name,
+    )}`;
+
+    let data = await fetch(url).then((r) => r.json());
+
+    let activeLyrics = null;
+
+    data.forEach((lyricsID) => {
+      if (lyricsID.isrc == track.isrc) {
+        activeLyrics = lyricsID;
+      }
+    });*/
+
+    //activeLyrics = { id: "1254572572" };
+    /*
+    activeLyrics = false;
+    if (activeLyrics) {
+      url = `https://lyrics.paxsenix.org/apple-music/lyrics?id=${activeLyrics.id}`;
+      data = await fetch(url).then((r) => r.json());
+      let lyricsColors = [
+        data.track.artwork.textColor1,
+        data.track.artwork.textColor2,
+        data.track.artwork.textColor3,
+        data.track.artwork.textColor4,
+        data.track.artwork.bgColor,
+      ];
+      data.content.forEach((line) => {
+        let lineDiv = document.createElement("div");
+        lineDiv.innerHTML +=
+          (line.oppositeTurn ? "[OPPOSITE] " : "") +
+          (line.background ? "[BACKGROUND] " : "") +
+          ("[" + line.structure + "] ");
+        lineDiv.className = "lyric-line";
+        lineDiv.dataset.time = line.timestamp;
+        lineDiv.dataset.duration = line.duration || 2000; // fallback for line duration
+        let wordPart = false;
+        line.text.forEach((text) => {
+          let span = document.createElement("span");
+          span.classList.add("word");
+          span.innerText = (wordPart ? "" : " ") + text.text;
+          lineDiv.appendChild(span);
+          span.onclick = () => {
+            audio.currentTime = text.timestamp / 1000;
+          };
+          const word = {
+            text: text.text,
+            time: text.timestamp,
+            duration: text.duration || 150,
+            el: span,
+          };
+          words.push(word);
+          if (wordPart) wordPart = false;
+          if (text.part) {
+            wordPart = true;
+          }
+        });
+        if (line.backgroundText[0]) {
+          backgroundSpan = document.createElement("span");
+          backgroundSpan.innerText += " | ";
+          line.backgroundText.forEach((text) => {
+            let span = document.createElement("span");
+            span.classList.add("word");
+            span.innerText = (wordPart ? "" : " ") + text.text;
+            backgroundSpan.appendChild(span);
+            span.onclick = () => {
+              audio.currentTime = text.timestamp / 1000;
+            };
+            const word = {
+              text: text.text,
+              time: text.timestamp,
+              duration: text.duration || 150,
+              el: span,
+            };
+            words.push(word);
+            if (wordPart) wordPart = false;
+            if (text.part) {
+              wordPart = true;
+            }
+          });
+          lineDiv.appendChild(backgroundSpan);
+        }
+        lyricsView.appendChild(lineDiv);
+      });
+    } else {*/
     let url = `${LYRICS_WORKER}?title=${encodeURIComponent(
       track.title,
     )}&artist=${encodeURIComponent(track.artists?.[0]?.name || "")}&duration=${Math.floor(track.duration)}&type=Word`;
@@ -411,8 +499,6 @@ async function loadLyrics(track) {
     if (PROXY_ENABLED) url = url.replaceAll("%20", "_").replaceAll("&", "%26");
 
     const data = await fetch(url).then((r) => r.json());
-
-    console.log(data);
 
     if (data?.lyrics?.length) {
       data.lyrics.forEach((line) => {
@@ -466,6 +552,7 @@ async function loadLyrics(track) {
     } else {
       lyricsView.textContent = "No lyrics available";
     }
+    /* } */
   } catch (e) {
     console.error(e);
     lyricsView.textContent = "Lyrics unavailable";
@@ -540,11 +627,19 @@ function openFavorites() {
 
 function favoriteTrack(track, e) {
   if (e) e.preventDefault();
+  if (!track) {
+    track = queue[index];
+  }
   // add track to localStorage
   let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
   // check if track is already in favorites
   if (favorites.find((t) => t.id === track.id)) {
     showToast(`Removed "${track.title}" from favorites`);
+    if (track == queue[index]) {
+      document.getElementById(
+        "favoriteTrack",
+      ).children[0].children[0].style.fill = "";
+    }
     favorites = favorites.filter((t) => t.id !== track.id);
     localStorage.setItem("favorites", JSON.stringify(favorites));
     localStorage.setItem("favoritesLength", favorites.length);
@@ -564,6 +659,11 @@ function favoriteTrack(track, e) {
   });
   localStorage.setItem("favoritesDuration", duration);
   showToast(`Favorited "${track.title}"`);
+  if (track == queue[index]) {
+    document.getElementById(
+      "favoriteTrack",
+    ).children[0].children[0].style.fill = "currentColor";
+  }
 }
 
 /* --- ARTIST PAGE --- */
@@ -763,7 +863,7 @@ async function openAlbum(al) {
       t.item.title
     }</span>
     ${t.item.explicit ? '<img src="e.svg">' : ""}
-    <span class="right">${formatTime(t.item.duration)}</span>`;
+    <span class="right">${t.item.key ? `${t.item.key} ` : ""}${t.item.bpm ? `${t.item.bpm} BPM ` : ""}${formatTime(t.item.duration)}</span>`;
     d.onclick = () => addToQueue(t.item);
     d.oncontextmenu = (e) => {
       e.preventDefault();
@@ -875,7 +975,8 @@ function updateProgress() {
   const pct = (audio.currentTime / audio.duration) * 100;
   progressBar.style.width = pct + "%";
   currentTimeEl.textContent = formatTime(audio.currentTime);
-  totalTimeEl.textContent = formatTime(audio.duration);
+  totalTimeEl.textContent =
+    "-" + formatTime(audio.duration - audio.currentTime);
 
   if (audio.buffered.length) {
     const end = audio.buffered.end(audio.buffered.length - 1);
