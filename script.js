@@ -1,4 +1,4 @@
-const PROXY_ENABLED = false;
+const PROXY_ENABLED = true;
 const PROXY_VALUE = PROXY_ENABLED
   ? "https://api.codetabs.com/v1/proxy/?quest="
   : "";
