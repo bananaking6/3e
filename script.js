@@ -47,7 +47,7 @@ async function searchAll(q) {
 }
 
 async function searchSection(title, param, q, render) {
-  const res = await fetch(`${API}/search/?${param}=${encodeURIComponent(q)}`);
+  const res = await fetch(`${API}/search/%3F${param}=${encodeURIComponent(q)}`);
   const data = await res.json();
   if (!data?.data) return;
   const row = document.createElement("div");
@@ -315,7 +315,7 @@ async function loadTrack(trackOrIndex) {
 
   document.getElementById("playerCover").onclick = () => {
     // fetch the album
-    fetch(`${API}/album/?id=${track.album.id}`)
+    fetch(`${API}/album/%3Fid=${track.album.id}`)
       .then((r) => r.json())
       .then((data) => {
         openAlbum(data.data);
@@ -353,7 +353,7 @@ async function preloadTrack(track, trackIndex) {
 // Get streaming track URL
 async function getTrackUrl(track) {
   const res = await fetch(
-    `${API}/track/?id=${track.id}${PROXY_ENABLED ? "%26" : "&"}quality=LOW`,
+    `${API}/track/%3Fid=${track.id}${PROXY_ENABLED ? "%26" : "&"}quality=LOW`,
   );
   const data = await res.json();
   const trackUrl = PROXY_ENABLED
@@ -797,8 +797,8 @@ async function openArtist(id, name, pic) {
   const content = document.getElementById("artistContent");
 
   const [primaryResponse, contentResponse] = await Promise.all([
-    fetch(`${API}/artist/?id=${id}`),
-    fetch(`${API}/artist/?f=${id}&skip_tracks=true`),
+    fetch(`${API}/artist/%3Fid=${id}`),
+    fetch(`${API}/artist/%3Ff=${id}&skip_tracks=true`),
   ]);
 
   const primaryJson = await primaryResponse.json();
@@ -858,7 +858,7 @@ async function openArtist(id, name, pic) {
       d.oncontextmenu = (e) => {
         e.preventDefault();
         // fetch the album
-        fetch(`${API}/album/?id=${t.album.id}`)
+        fetch(`${API}/album/%3Fid=${t.album.id}`)
           .then((r) => r.json())
           .then((data) => {
             const fullTrack = data?.data?.items.find(
@@ -937,7 +937,7 @@ async function openAlbum(al) {
     tracks = al.playlistTracks.map((t) => ({ item: t }));
   } else {
     // Regular album: fetch from API
-    const data = await fetch(`${API}/album/?id=${al.id}`).then((r) => r.json());
+    const data = await fetch(`${API}/album/%3Fid=${al.id}`).then((r) => r.json());
     tracks = data?.data?.items || [];
   }
 
