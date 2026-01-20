@@ -243,7 +243,8 @@ main {
 
 #searchInput:focus {
     background: var(--color-bg-highlight);
-    border-color: var(--color-text-muted);
+    border-color: var(--secondary-color);
+    outline: none;
 }
 
 #searchResults h3,
@@ -339,7 +340,7 @@ main {
     width: 16px;
     height: 16px;
     flex-shrink: 0;
-    filter: invert(0.5); /* Make it gray */
+    opacity: 0.6;
 }
 
 /* Artist Page */
@@ -352,7 +353,7 @@ main {
     padding: var(--space-xl);
     margin: calc(var(--space-xl) * -1);
     margin-bottom: var(--space-xl);
-    background-color: var(--color-bg-highlight); /* Fallback */
+    background-color: transparent;
     overflow: hidden;
 }
 
@@ -361,7 +362,7 @@ main {
     inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: scale-down;
     mask-image: linear-gradient(
         to bottom,
         rgba(0, 0, 0, 1) 50%,

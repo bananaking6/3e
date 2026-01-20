@@ -104,7 +104,7 @@ function renderSongs(d, c) {
         .join(",")}`,
     (t) =>
       t?.album?.cover
-        ? `${IMG}${t.album.cover.replaceAll("-", "/")}/160x160.jpg`
+        ? `${IMG}${t.album.cover.replaceAll("-", "/")}/320x320.jpg`
         : "",
     (t) => t.title,
     (t) => addToQueue(t),
@@ -117,7 +117,7 @@ function renderArtists(d, c) {
     artists,
     c,
     (a) => a.name.toLowerCase().replace(/[\s-]/g, ""),
-    (a) => `${IMG}${a.picture.replaceAll("-", "/")}/160x160.jpg`,
+    (a) => `${IMG}${a.picture.replaceAll("-", "/")}/320x320.jpg`,
     (a) => a.name,
     (a) => openArtist(a.id, a.name, a.picture),
     (a) => a.id && a.picture,
@@ -135,7 +135,7 @@ function renderAlbums(d, c) {
         .sort()
         .join(",")}`,
     (al) =>
-      al.cover ? `${IMG}${al.cover.replaceAll("-", "/")}/160x160.jpg` : "",
+      al.cover ? `${IMG}${al.cover.replaceAll("-", "/")}/320x320.jpg` : "",
     (al) => al.title,
     (al) => openAlbum(al),
   );
@@ -148,7 +148,7 @@ function renderPlaylists(d, c) {
     c,
     (p) => p.title.toLowerCase(),
     (p) =>
-      p.picture ? `${IMG}${p.picture.replaceAll("-", "/")}/160x160.jpg` : "",
+      p.picture ? `${IMG}${p.picture.replaceAll("-", "/")}/320x320.jpg` : "",
     (p) => p.title,
     () => alert("Playlist page coming soon"),
   );
@@ -617,7 +617,8 @@ function openFavorites() {
   openAlbum({
     title: "FAVORITES",
     type: "PLAYLIST",
-    cover: "5b22b4ad-2358-4418-acae-2a2c226e5945",
+    cover: "5806b59b-2f3d-4d0a-8541-e75de4e58f2c",
+    releaseDate: `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`,
     artists: [{ name: "You" }],
     playlistTracks: JSON.parse(localStorage.favorites),
     duration: localStorage.favoritesDuration,
@@ -803,7 +804,7 @@ async function openArtist(id, name, pic) {
       container,
       (al) => al.id,
       (al) =>
-        al.cover ? `${IMG}${al.cover.replaceAll("-", "/")}/160x160.jpg` : "",
+        al.cover ? `${IMG}${al.cover.replaceAll("-", "/")}/320x320.jpg` : "",
       (al) => al.title,
       (al) => openAlbum(al),
     );
@@ -833,7 +834,7 @@ async function openAlbum(al) {
   }
 
   el.innerHTML = `
-  <img src="${IMG}${al.cover.replaceAll("-", "/")}/160x160.jpg">
+  <img src="${IMG}${al.cover.replaceAll("-", "/")}/320x320.jpg">
   <h2>${al.title}</h2>
   <h3>${al.artists[0].name}${dateStr ? " • " + dateStr : ""}</h3>
   <span id="albumInfo">${al.numberOfTracks} songs • ${formatTime(al.duration)}${
@@ -913,7 +914,7 @@ function draw() {
   canvas.width = innerWidth;
   canvas.height = innerHeight;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const barWidth = canvas.width / data.length;
+  const barWidth = (canvas.width / data.length) * 1.15;
   data.forEach((v, i) => {
     const x = i * barWidth;
     const y = canvas.height - (v / 255) * canvas.height;
@@ -956,7 +957,6 @@ if (sessionStorage.getItem("queue")) loadSessionStorage();
 const seekBar = document.getElementById("seekBar");
 const progressBar = document.getElementById("progressBar");
 const bufferBar = document.getElementById("bufferBar");
-const seekIndicator = document.getElementById("seekIndicator");
 const timeTooltip = document.getElementById("timeTooltip");
 const currentTimeEl = document.getElementById("currentTime");
 const totalTimeEl = document.getElementById("totalTime");
@@ -1042,16 +1042,12 @@ seekBar.addEventListener("mousemove", (e) => {
   const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
   const hoverTime = audio.duration * pct;
 
-  seekIndicator.style.left = pct * 100 + "%";
-  seekIndicator.style.opacity = 1;
-
   timeTooltip.textContent = formatTime(hoverTime);
   timeTooltip.style.left = pct * 100 + "%";
   timeTooltip.style.opacity = 1;
 });
 
 seekBar.addEventListener("mouseleave", () => {
-  seekIndicator.style.opacity = 0;
   timeTooltip.style.opacity = 0;
 });
 
