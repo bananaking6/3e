@@ -70,78 +70,87 @@ function card(img, title, onclick) {
 }
 
 /* --- RENDERERS --- */
+function renderGenericList(
+  items,
+  container,
+  keyFn,
+  imgFn,
+  titleFn,
+  clickFn,
+  filterFn = () => true,
+) {
+  const seen = new Set();
+  items.forEach((item) => {
+    if (!filterFn(item)) return;
+    const key = keyFn(item);
+    if (seen.has(key)) return;
+    seen.add(key);
+    container.appendChild(
+      card(imgFn(item), titleFn(item), () => clickFn(item)),
+    );
+  });
+}
+
 function renderSongs(d, c) {
   const tracks = d?.tracks?.items || d?.items || [];
-  const seen = new Set();
-
-  tracks.forEach((t) => {
-    const key = `${t.title.toLowerCase()}|${(t.artists || [])
-      .map((a) => a.name.toLowerCase())
-      .sort()
-      .join(",")}`;
-
-    if (seen.has(key)) return; // skip duplicate
-    seen.add(key);
-
-    const img = t?.album?.cover
-      ? `${IMG}${t.album.cover.replaceAll("-", "/")}/160x160.jpg`
-      : "";
-    c.appendChild(card(img, t.title, () => addToQueue(t)));
-  });
+  renderGenericList(
+    tracks,
+    c,
+    (t) =>
+      `${t.title.toLowerCase()}|${(t.artists || [])
+        .map((a) => a.name.toLowerCase())
+        .sort()
+        .join(",")}`,
+    (t) =>
+      t?.album?.cover
+        ? `${IMG}${t.album.cover.replaceAll("-", "/")}/160x160.jpg`
+        : "",
+    (t) => t.title,
+    (t) => addToQueue(t),
+  );
 }
 
 function renderArtists(d, c) {
   const artists = d?.artists?.items || d?.items || [];
-  const seen = new Set();
-
-  artists.forEach((a) => {
-    // Skip artists without an ID or without a picture
-    if (!a.id || !a.picture) return;
-
-    // Normalize the name: lowercase, remove spaces and dashes
-    const key = a.name.toLowerCase().replace(/[\s-]/g, "");
-
-    if (seen.has(key)) return; // skip duplicates
-    seen.add(key);
-
-    const img = `${IMG}${a.picture.replaceAll("-", "/")}/160x160.jpg`;
-    c.appendChild(card(img, a.name, () => openArtist(a.id, a.name, a.picture)));
-  });
+  renderGenericList(
+    artists,
+    c,
+    (a) => a.name.toLowerCase().replace(/[\s-]/g, ""),
+    (a) => `${IMG}${a.picture.replaceAll("-", "/")}/160x160.jpg`,
+    (a) => a.name,
+    (a) => openArtist(a.id, a.name, a.picture),
+    (a) => a.id && a.picture,
+  );
 }
 
 function renderAlbums(d, c) {
   const albums = d?.albums?.items || d?.items || [];
-  const seen = new Set();
-
-  albums.forEach((al) => {
-    const key = `${al.title.toLowerCase()}|${(al.artists || [])
-      .map((a) => a.name.toLowerCase())
-      .sort()
-      .join(",")}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-
-    const img = al.cover
-      ? `${IMG}${al.cover.replaceAll("-", "/")}/160x160.jpg`
-      : "";
-    c.appendChild(card(img, al.title, () => openAlbum(al)));
-  });
+  renderGenericList(
+    albums,
+    c,
+    (al) =>
+      `${al.title.toLowerCase()}|${(al.artists || [])
+        .map((a) => a.name.toLowerCase())
+        .sort()
+        .join(",")}`,
+    (al) =>
+      al.cover ? `${IMG}${al.cover.replaceAll("-", "/")}/160x160.jpg` : "",
+    (al) => al.title,
+    (al) => openAlbum(al),
+  );
 }
 
 function renderPlaylists(d, c) {
   const pls = d?.playlists?.items || d?.items || [];
-  const seen = new Set();
-
-  pls.forEach((p) => {
-    const key = p.title.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-
-    const img = p.picture
-      ? `${IMG}${p.picture.replaceAll("-", "/")}/160x160.jpg`
-      : "";
-    c.appendChild(card(img, p.title, () => alert("Playlist page coming soon")));
-  });
+  renderGenericList(
+    pls,
+    c,
+    (p) => p.title.toLowerCase(),
+    (p) =>
+      p.picture ? `${IMG}${p.picture.replaceAll("-", "/")}/160x160.jpg` : "",
+    (p) => p.title,
+    () => alert("Playlist page coming soon"),
+  );
 }
 
 /* --- QUEUE --- */
@@ -220,6 +229,20 @@ function toggleQueue() {
 let preloadedAudio = {}; // key: track index, value: URL string
 
 // Load a track immediately
+// Function to lighten/darken a hex color
+function adjustColor(hex, percent) {
+  let num = parseInt(hex.slice(1), 16);
+  let r = (num >> 16) & 0xff;
+  let g = (num >> 8) & 0xff;
+  let b = num & 0xff;
+
+  r = Math.min(255, Math.max(0, r + percent));
+  g = Math.min(255, Math.max(0, g + percent));
+  b = Math.min(255, Math.max(0, b + percent));
+
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
 async function loadTrack(trackOrIndex) {
   let trackIndex;
   let track;
@@ -255,20 +278,6 @@ async function loadTrack(trackOrIndex) {
   document.title = `${track.title || "Unknown Title"} - ${
     track.artists?.[0]?.name || "Unknown Artist"
   }`;
-  // set global color
-  // Function to lighten/darken a hex color
-  function adjustColor(hex, percent) {
-    let num = parseInt(hex.slice(1), 16);
-    let r = (num >> 16) & 0xff;
-    let g = (num >> 8) & 0xff;
-    let b = num & 0xff;
-
-    r = Math.min(255, Math.max(0, r + percent));
-    g = Math.min(255, Math.max(0, g + percent));
-    b = Math.min(255, Math.max(0, b + percent));
-
-    return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-  }
 
   // Set main and secondary colors dynamically
   document.documentElement.style.setProperty(
@@ -402,6 +411,8 @@ async function loadLyrics(track) {
     if (PROXY_ENABLED) url = url.replaceAll("%20", "_").replaceAll("&", "%26");
 
     const data = await fetch(url).then((r) => r.json());
+
+    console.log(data);
 
     if (data?.lyrics?.length) {
       data.lyrics.forEach((line) => {
@@ -556,6 +567,37 @@ function favoriteTrack(track, e) {
 }
 
 /* --- ARTIST PAGE --- */
+// ===== Deduplicate albums =====
+function deduplicateAlbums(albums) {
+  const unique = new Map();
+  for (const album of albums) {
+    if (!album || !album.title) continue;
+    const key = JSON.stringify([album.title, album.numberOfTracks || 0]);
+    if (unique.has(key)) {
+      const existing = unique.get(key);
+      const existingExplicit = existing.explicit || false;
+      const newExplicit = album.explicit || false;
+      if (newExplicit && !existingExplicit) {
+        unique.set(key, album);
+        continue;
+      }
+      if (!newExplicit && existingExplicit) continue;
+      const existingTags = existing.mediaMetadata?.tags?.length || 0;
+      const newTags = album.mediaMetadata?.tags?.length || 0;
+      if (newTags > existingTags) {
+        unique.set(key, album);
+        continue;
+      }
+      if ((album.popularity || 0) > (existing.popularity || 0)) {
+        unique.set(key, album);
+      }
+    } else {
+      unique.set(key, album);
+    }
+  }
+  return Array.from(unique.values());
+}
+
 async function openArtist(id, name, pic) {
   showView("artist");
   const el = document.getElementById("artist");
@@ -603,36 +645,6 @@ async function openArtist(id, name, pic) {
   };
   entries.forEach((entry) => scan(entry));
 
-  // ===== Deduplicate albums =====
-  const deduplicateAlbums = (albums) => {
-    const unique = new Map();
-    for (const album of albums) {
-      if (!album || !album.title) continue;
-      const key = JSON.stringify([album.title, album.numberOfTracks || 0]);
-      if (unique.has(key)) {
-        const existing = unique.get(key);
-        const existingExplicit = existing.explicit || false;
-        const newExplicit = album.explicit || false;
-        if (newExplicit && !existingExplicit) {
-          unique.set(key, album);
-          continue;
-        }
-        if (!newExplicit && existingExplicit) continue;
-        const existingTags = existing.mediaMetadata?.tags?.length || 0;
-        const newTags = album.mediaMetadata?.tags?.length || 0;
-        if (newTags > existingTags) {
-          unique.set(key, album);
-          continue;
-        }
-        if ((album.popularity || 0) > (existing.popularity || 0)) {
-          unique.set(key, album);
-        }
-      } else {
-        unique.set(key, album);
-      }
-    }
-    return Array.from(unique.values());
-  };
   const allAlbums = deduplicateAlbums(Array.from(albumMap.values()));
 
   // Separate full albums and singles/EPs
@@ -679,39 +691,28 @@ async function openArtist(id, name, pic) {
     content.appendChild(row);
   }
 
-  // ===== Render albums =====
-  if (albums.length) {
+  const renderSection = (title, items) => {
+    if (!items.length) return;
     const row = document.createElement("div");
     row.className = "row";
-    row.innerHTML = "<h3>Albums</h3>";
+    row.innerHTML = `<h3>${title}</h3>`;
     const container = document.createElement("div");
     container.className = "cards";
-    albums.forEach((al) => {
-      const img = al.cover
-        ? `${IMG}${al.cover.replaceAll("-", "/")}/160x160.jpg`
-        : "";
-      container.appendChild(card(img, al.title, () => openAlbum(al)));
-    });
+    renderGenericList(
+      items,
+      container,
+      (al) => al.id,
+      (al) =>
+        al.cover ? `${IMG}${al.cover.replaceAll("-", "/")}/160x160.jpg` : "",
+      (al) => al.title,
+      (al) => openAlbum(al),
+    );
     row.appendChild(container);
     content.appendChild(row);
-  }
+  };
 
-  // ===== Render singles/EPs =====
-  if (epsAndSingles.length) {
-    const row = document.createElement("div");
-    row.className = "row";
-    row.innerHTML = "<h3>EPs & Singles</h3>";
-    const container = document.createElement("div");
-    container.className = "cards";
-    epsAndSingles.forEach((al) => {
-      const img = al.cover
-        ? `${IMG}${al.cover.replaceAll("-", "/")}/160x160.jpg`
-        : "";
-      container.appendChild(card(img, al.title, () => openAlbum(al)));
-    });
-    row.appendChild(container);
-    content.appendChild(row);
-  }
+  renderSection("Albums", albums);
+  renderSection("EPs & Singles", epsAndSingles);
 }
 
 /* --- ALBUM PAGE --- */
@@ -719,19 +720,29 @@ async function openAlbum(al) {
   showView("album");
   const el = document.getElementById("album");
   // format al.releaseDate
-  const date = new Date(al.releaseDate);
-  releaseDate = date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  let dateStr = "";
+  if (al.releaseDate) {
+    try {
+      const date = new Date(al.releaseDate);
+      dateStr = date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch (e) {}
+  }
+
   el.innerHTML = `
-  <h2>${al.title}</h2>
   <img src="${IMG}${al.cover.replaceAll("-", "/")}/160x160.jpg">
-  <h3>${al.artists[0].name}${al.releaseDate ? " - " + releaseDate : ""}</h3>
-  <span id="albumInfo">${al.numberOfTracks} songs • ${formatTime(al.duration)}${al.copyright ? " • " + al.copyright : ""}</span><br>
-  <button id="playAll">▶ Play All</button>
-  <button id="shufflePlay">🔀 Shuffle Play</button>
+  <h2>${al.title}</h2>
+  <h3>${al.artists[0].name}${dateStr ? " • " + dateStr : ""}</h3>
+  <span id="albumInfo">${al.numberOfTracks} songs • ${formatTime(al.duration)}${
+    al.copyright ? " • " + al.copyright : ""
+  }</span>
+  <div style="margin-top: 20px;">
+    <button id="playAll">PLAY</button>
+    <button id="shufflePlay">SHUFFLE</button>
+  </div>
   <div id="albumTracks"></div>
   `;
   let tracks = [];
@@ -747,7 +758,12 @@ async function openAlbum(al) {
   tracks.forEach((t) => {
     const d = document.createElement("div");
     d.className = "song-row";
-    d.innerHTML = `${t.item.title} ${t.item.explicit ? '<img src="e.svg">' : ""} <span class="right">${formatTime(t.item.duration)} ${t.item.bpm ? " • " + t.item.bpm + " BPM " : ""} ${t.item.key ? " • " + t.item.key : ""}</span>`;
+    d.innerHTML = `
+    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${
+      t.item.title
+    }</span>
+    ${t.item.explicit ? '<img src="e.svg">' : ""}
+    <span class="right">${formatTime(t.item.duration)}</span>`;
     d.onclick = () => addToQueue(t.item);
     d.oncontextmenu = (e) => {
       e.preventDefault();
@@ -882,6 +898,20 @@ window.addEventListener("mousemove", (e) => {
   if (isDragging) seek(e.clientX);
 });
 window.addEventListener("mouseup", () => (isDragging = false));
+
+// Keyboard shortcuts
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT") return;
+  if (e.code === "Space") {
+    e.preventDefault();
+    togglePlay();
+  } else if (e.code === "ArrowRight") {
+    if (audio.duration)
+      audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
+  } else if (e.code === "ArrowLeft") {
+    audio.currentTime = Math.max(0, audio.currentTime - 5);
+  }
+});
 
 // Touch
 seekBar.addEventListener("touchstart", (e) => {
