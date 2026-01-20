@@ -548,11 +548,48 @@ main {
     height: 40px;
 }
 
+.player-controls button svg {
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.2));
+    transition: filter 0.2s;
+}
+
 .player-controls button:hover {
     color: var(--color-text-base);
 }
 
-.player-controls button:nth-child(2) {
+.player-controls button:hover svg {
+    filter: drop-shadow(0 0 5px var(--main-color));
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background: #fff;
+    margin-top: -4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: transform 0.1s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.3);
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.player-controls button:nth-child(3) {
     /* Play/Pause */
     width: 50px;
     height: 50px;
@@ -566,7 +603,7 @@ main {
     padding-left: 2px; /* Visual optical adjustment for play icon */
 }
 
-.player-controls button:nth-child(2):hover {
+.player-controls button:nth-child(3):hover {
     transform: scale(1.1);
     color: var(--color-bg-base);
 }
@@ -586,9 +623,10 @@ main {
 .seek-bar {
     width: 100%;
     height: 100%;
-    background: #535353;
+    background: rgba(255, 255, 255, 0.2);
     position: relative;
     transition: height 0.1s;
+    border-radius: var(--radius-full);
 }
 
 .player-seek-container:hover .seek-bar {
@@ -614,10 +652,42 @@ main {
     opacity: 0.5;
 }
 
-.time-label,
-.time-tooltip,
-.seek-indicator {
-    display: none; /* Minimal look */
+.progress-bar::after {
+    content: "";
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%) scale(0);
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: transform 0.1s;
+}
+
+.player-seek-container:hover .progress-bar::after {
+    transform: translateY(-50%) scale(1);
+}
+
+.time-tooltip {
+    display: none;
+    position: absolute;
+    bottom: 15px;
+    background: var(--color-bg-elevated);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    pointer-events: none;
+    box-shadow: var(--shadow-md);
+    transform: translateX(-50%);
+    white-space: nowrap;
+    z-index: 200;
+}
+
+.player-seek-container:hover .time-tooltip {
+    display: block;
 }
 
 /* --- Overlays --- */
@@ -707,8 +777,18 @@ main {
 }
 
 .word {
-    display: inline-block;
-    margin-right: 0.25em;
+    display: inline;
+    margin: 0;
+    padding: 0;
+    border-radius: 2px;
+    transition:
+        color 0.2s,
+        text-shadow 0.2s;
+}
+
+.word.active {
+    color: var(--main-color);
+    text-shadow: 0 0 15px var(--main-color);
 }
 
 /* Toast */

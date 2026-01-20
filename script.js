@@ -890,6 +890,15 @@ function seek(clientX) {
 }
 
 // Mouse
+seekBar.addEventListener("mousemove", (e) => {
+  const rect = seekBar.getBoundingClientRect();
+  const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+  timeTooltip.style.left = pct * 100 + "%";
+  if (audio.duration) {
+    timeTooltip.textContent = formatTime(pct * audio.duration);
+  }
+});
+
 seekBar.addEventListener("mousedown", (e) => {
   isDragging = true;
   seek(e.clientX);
@@ -901,7 +910,7 @@ window.addEventListener("mouseup", () => (isDragging = false));
 
 // Keyboard shortcuts
 document.addEventListener("keydown", (e) => {
-  if (e.target.tagName === "INPUT") return;
+  if (e.target.tagName === "INPUT" && e.target.type !== "range") return;
   if (e.code === "Space") {
     e.preventDefault();
     togglePlay();
