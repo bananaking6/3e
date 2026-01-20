@@ -396,6 +396,92 @@ seek.oninput = () => (audio.currentTime = (seek.value / 100) * audio.duration);
 // Auto-next
 audio.onended = next;
 
+// Reverse the audio
+// Reverse the audio and auto-play when ready
+function reverseAudio() {
+  audio.pause();
+
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const ctx = new AudioCtx();
+
+  fetch(audio.src)
+    .then((r) => r.arrayBuffer())
+    .then((b) => ctx.decodeAudioData(b))
+    .then((buffer) => {
+      // Reverse channels
+      for (let c = 0; c < buffer.numberOfChannels; c++) {
+        buffer.getChannelData(c).reverse();
+      }
+
+      // Encode to WAV
+      const wavBlob = bufferToWav(buffer);
+      const url = URL.createObjectURL(wavBlob);
+
+      // Auto-play when ready
+      audio.oncanplaythrough = () => {
+        audio.oncanplaythrough = null; // clean up
+        audio.currentTime = 0;
+        audio.play().catch(() => {
+          // autoplay blocked — requires user interaction
+          console.warn("Autoplay blocked by browser");
+        });
+      };
+
+      audio.src = url;
+      audio.load();
+    });
+
+  // ---- WAV encoder ----
+  function bufferToWav(buffer) {
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const length = buffer.length * numChannels * 2;
+    const arrayBuffer = new ArrayBuffer(44 + length);
+    const view = new DataView(arrayBuffer);
+
+    let offset = 0;
+    const writeString = (s) => {
+      for (let i = 0; i < s.length; i++) {
+        view.setUint8(offset++, s.charCodeAt(i));
+      }
+    };
+
+    writeString("RIFF");
+    view.setUint32(offset, 36 + length, true);
+    offset += 4;
+    writeString("WAVE");
+    writeString("fmt ");
+    view.setUint32(offset, 16, true);
+    offset += 4;
+    view.setUint16(offset, 1, true);
+    offset += 2;
+    view.setUint16(offset, numChannels, true);
+    offset += 2;
+    view.setUint32(offset, sampleRate, true);
+    offset += 4;
+    view.setUint32(offset, sampleRate * numChannels * 2, true);
+    offset += 4;
+    view.setUint16(offset, numChannels * 2, true);
+    offset += 2;
+    view.setUint16(offset, 16, true);
+    offset += 2;
+    writeString("data");
+    view.setUint32(offset, length, true);
+    offset += 4;
+
+    for (let i = 0; i < buffer.length; i++) {
+      for (let c = 0; c < numChannels; c++) {
+        let sample = buffer.getChannelData(c)[i];
+        sample = Math.max(-1, Math.min(1, sample));
+        view.setInt16(offset, sample * 0x7fff, true);
+        offset += 2;
+      }
+    }
+
+    return new Blob([arrayBuffer], { type: "audio/wav" });
+  }
+}
+
 /* --- LYRICS --- */
 async function loadLyrics(track) {
   lyricsView.innerHTML = "";
@@ -780,7 +866,6 @@ async function openArtist(id, name, pic) {
             )?.item;
             if (fullTrack) {
               favoriteTrack(fullTrack);
-              showToast(`Favorited "${t.title}"`);
             } else {
               showToast("Failed to favorite track");
             }
