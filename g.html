@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Skibidi socks click the page</title>
+        </head>
+        <body>
+            <script>
+
+            async function inlineGame(url) {
+                // base folder of the HTML file
+                const base = url.replace(/\/[^/]*$/, "/");
+
+                async function fetchText(u) {
+                    const r = await fetch(u);
+                    if (!r.ok) throw new Error(`Failed fetch: ${u}`);
+                    return await r.text();
+                }
+
+                async function fetchDataURL(u) {
+                    const r = await fetch(u);
+                    if (!r.ok) throw new Error(`Failed fetch: ${u}`);
+                    const blob = await r.blob();
+                    return await new Promise((res) => {
+                        const fr = new FileReader();
+                        fr.onload = () => res(fr.result);
+                        fr.readAsDataURL(blob);
+                    });
+                }
+                async function processCss(cssText, cssBase) {
+                    const importRe =
+                        /@import\s+(?:url\()?['"]?([^'")]+)['"]?\)?\s*;/g;
+                    const urlRe = /url\(\s*(['"]?)([^'")]+)\1\s*\)/g;
+                    const tasks = [];
+
+                    let m;
+                    while ((m = importRe.exec(cssText))) {
+                        const from = m[0],
+                            path = m[1];
+                        tasks.push(
+                            (async () => {
+                                try {
+                                    const abs = new URL(path, cssBase).href;
+                                    const txt = await fetchText(abs);
+                                    const processed = await processCss(
+                                        txt,
+                                        abs,
+                                    );
+                                    return { from, to: processed };
+                                } catch {
+                                    return { from, to: from };
+                                }
+                            })(),
+                        );
+                    }
+
+                    while ((m = urlRe.exec(cssText))) {
+                        const from = m[0],
+                            path = m[2];
+                        tasks.push(
+                            (async () => {
+                                try {
+                                    if (/^data:/i.test(path))
+                                        return { from, to: from };
+                                    const abs = new URL(path, cssBase).href;
+                                    const data = await fetchDataURL(abs);
+                                    return { from, to: `url("${data}")` };
+                                } catch {
+                                    return { from, to: from };
+                                }
+                            })(),
+                        );
+                    }
+
+                    const results = await Promise.all(tasks);
+                    let out = cssText;
+                    for (const r of results) out = out.split(r.from).join(r.to);
+                    return out;
+                }
+
+                const htmlText = await fetchText(url);
+                const doc = new DOMParser().parseFromString(
+                    htmlText,
+                    "text/html",
+                );
+
+                // insert <base> to fix relative paths
+                let baseTag = doc.querySelector("base");
+                if (!baseTag) {
+                    baseTag = doc.createElement("base");
+                    (doc.querySelector("head") || doc.documentElement).prepend(
+                        baseTag,
+                    );
+                }
+                baseTag.href = base;
+
+                // inline CSS
+                for (const link of doc.querySelectorAll(
+                    'link[rel~="stylesheet"][href]',
+                )) {
+                    try {
+                        const abs = new URL(link.getAttribute("href"), base)
+                            .href;
+                        const css = await fetchText(abs);
+                        const processed = await processCss(css, abs);
+                        const style = document.createElement("style");
+                        style.textContent = processed;
+                        link.replaceWith(style);
+                    } catch (e) {
+                        console.warn("CSS inline failed", e);
+                    }
+                }
+
+                // inline JS
+                for (const s of doc.querySelectorAll("script[src]")) {
+                    try {
+                        const abs = new URL(s.getAttribute("src"), base).href;
+                        const js = await fetchText(abs);
+                        const inline = document.createElement("script");
+                        if (s.type) inline.type = s.type;
+                        inline.textContent = js;
+                        s.replaceWith(inline);
+                    } catch (e) {
+                        console.warn("JS inline failed", e);
+                    }
+                }
+
+                // inline images/icons
+                for (const el of doc.querySelectorAll(
+                    "img[src], link[rel~='icon'][href]",
+                )) {
+                    try {
+                        const attr =
+                            el.tagName.toLowerCase() === "link"
+                                ? "href"
+                                : "src";
+                        const abs = new URL(el.getAttribute(attr), base).href;
+                        const data = await fetchDataURL(abs);
+                        el.setAttribute(attr, data);
+                    } catch (e) {
+                        console.warn("Image inline failed", e);
+                    }
+                }
+
+                // inline <style> blocks
+                for (const st of doc.querySelectorAll("style")) {
+                    try {
+                        st.textContent = await processCss(st.textContent, base);
+                    } catch (e) {
+                        console.warn("Style block failed", e);
+                    }
+                }
+
+                // serialize final HTML as Blob
+                const finalHtml =
+                    "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+                const blob = new Blob([finalHtml], { type: "text/html" });
+                return URL.createObjectURL(blob);
+            }
+
+            function opengame(gggggg) {
+                console.log(gggggg);
+                if (gggggg) {
+                    result = gggggg;
+
+                    (async () => {
+                        const blobUrl = await inlineGame(result);
+                        window.open(blobUrl, "_blank");
+                    })();
+                } else {
+                    console.error("who knows", gggggg);
+                }
+            }
+
+            document.addEventListener("click", () => {
+                opengame("https://raw.githubusercontent.com/bananaking6/3e/refs/heads/main/index.html");
+            });
+
+            
+        </script>click da page
+    </body>
+</html>

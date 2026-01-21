@@ -43,7 +43,6 @@ async function searchAll(q) {
   await searchSection("Songs", "s", q, renderSongs);
   await searchSection("Artists", "a", q, renderArtists);
   await searchSection("Albums", "al", q, renderAlbums);
-  //await searchSection("Playlists", "p", q, renderPlaylists);
 }
 
 async function searchSection(title, param, q, render) {
@@ -138,19 +137,6 @@ function renderAlbums(d, c) {
       al.cover ? `${IMG}${al.cover.replaceAll("-", "/")}/320x320.jpg` : "",
     (al) => al.title,
     (al) => openAlbum(al),
-  );
-}
-
-function renderPlaylists(d, c) {
-  const pls = d?.playlists?.items || d?.items || [];
-  renderGenericList(
-    pls,
-    c,
-    (p) => p.title.toLowerCase(),
-    (p) =>
-      p.picture ? `${IMG}${p.picture.replaceAll("-", "/")}/320x320.jpg` : "",
-    (p) => p.title,
-    () => alert("Playlist page coming soon"),
   );
 }
 
@@ -703,10 +689,11 @@ function openFavorites() {
   openAlbum({
     title: "FAVORITES",
     type: "PLAYLIST",
+    id: "favorites",
     cover: "5806b59b-2f3d-4d0a-8541-e75de4e58f2c",
     releaseDate: `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`,
     artists: [{ name: "You" }],
-    playlistTracks: JSON.parse(localStorage.favorites),
+    playlistTracks: JSON.parse(localStorage.getItem("favorites") || "[]"),
     duration: localStorage.favoritesDuration,
     numberOfTracks: localStorage.favoritesLength,
   });
@@ -752,6 +739,84 @@ function favoriteTrack(track, e) {
     ).children[0].children[0].style.fill = "currentColor";
   }
 }
+
+/* --- PLAYLISTS --- */
+function openPlaylist(id) {
+  let pl = JSON.parse(localStorage.getItem(`playlist_${id}`) || "null");
+  if (pl) {
+    openAlbum({
+      title: pl.title,
+      type: "PLAYLIST",
+      cover: pl.cover || "5806b59b-2f3d-4d0a-8541-e75de4e58f2c",
+      releaseDate: `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`,
+      artists: [{ name: "You" }],
+      playlistTracks: (pl.tracks || "[]"),
+      duration: pl.duration,
+      numberOfTracks: pl.numberOfTracks,
+    });
+  } else {
+    console.warn("Playlist not found:", id);
+  }
+}
+
+function createPlaylist(id, title) {
+  const pl = {
+    title: title || "New Playlist",
+    tracks: [],
+    duration: 0,
+    numberOfTracks: 0,
+  };
+  localStorage.setItem(`playlist_${id}`, JSON.stringify(pl));
+}
+
+function deletePlaylist(id) {
+  localStorage.removeItem(`playlist_${id}`);
+}
+
+function addToPlaylist(id, track) {
+  let pl = JSON.parse(localStorage.getItem(`playlist_${id}`) || "null");
+  if (pl) {
+    pl.tracks.push(track);
+    pl.numberOfTracks = pl.tracks.length;
+    pl.duration = (pl.duration || 0) + track.duration;
+    localStorage.setItem(`playlist_${id}`, JSON.stringify(pl));
+    showToast(`"${track.title}" added to playlist "${pl.title}"`);
+  } else {
+    console.warn("Playlist not found:", id);
+  }
+}
+
+function addActiveToPlaylist(id) {
+  let pl = JSON.parse(localStorage.getItem(`playlist_${id}`) || "null");
+  if (pl) {
+    const track = queue[index];
+    pl.tracks.push(track);
+    pl.numberOfTracks = pl.tracks.length;
+    pl.duration = (pl.duration || 0) + track.duration;
+    localStorage.setItem(`playlist_${id}`, JSON.stringify(pl));
+    showToast(`"${track.title}" added to playlist "${pl.title}"`);
+  } else {
+    console.warn("Playlist not found:", id);
+  }
+}
+
+function loadPlaylists() {
+  let sidebar = document.querySelector(".sidebar");
+  sidebar.innerHTML += `<h1>Playlists</h1>`;
+  for (let key in localStorage) {
+    if (key.startsWith("playlist_")) {
+      let pl = JSON.parse(localStorage.getItem(key));
+      const plId = key.replace("playlist_", "");
+      const plDiv = document.createElement("button");
+      plDiv.className = "sidebar-item";
+      plDiv.textContent = pl.title;
+      plDiv.onclick = () => openPlaylist(plId);
+      sidebar.appendChild(plDiv);
+    }
+  }
+}
+
+document.addEventListener("DOMContentLoaded", loadPlaylists);
 
 /* --- ARTIST PAGE --- */
 // ===== Deduplicate albums =====
@@ -920,14 +985,17 @@ async function openAlbum(al) {
 
   el.innerHTML = `
   <img src="${IMG}${al.cover.replaceAll("-", "/")}/320x320.jpg">
-  <h2>${al.title}</h2>
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <h2 id="playlistTitle" style="cursor: ${al.type === "PLAYLIST" ? "pointer" : "default"}">${al.title}</h2>
+  </div>
   <h3>${al.artists[0].name}${dateStr ? " • " + dateStr : ""}</h3>
   <span id="albumInfo">${al.numberOfTracks} songs • ${formatTime(al.duration)}${
     al.copyright ? " • " + al.copyright : ""
   }</span>
   <div style="margin-top: 20px;">
-    <button id="playAll">PLAY</button>
-    <button id="shufflePlay">SHUFFLE</button>
+    <button class="album-action" id="playAll">PLAY</button>
+    <button class="album-action secondary" id="shufflePlay">SHUFFLE</button>
+    <button class="album-action secondary" id="deletePlaylist" style="display: none;">Delete Playlist</button>
   </div>
   <div id="albumTracks"></div>
   `;
@@ -935,6 +1003,66 @@ async function openAlbum(al) {
   if (al.type == "PLAYLIST") {
     // Custom Playlist: use stored tracks
     tracks = al.playlistTracks.map((t) => ({ item: t }));
+    
+    const titleEl = document.getElementById("playlistTitle");
+    const deleteBtn = document.getElementById("deletePlaylist");
+    deleteBtn.style.display = "inline-block";
+    
+    // Add hover effect to edit title
+    titleEl.style.outline = "none";
+    titleEl.addEventListener("mouseenter", () => {
+      titleEl.style.outline = "2px solid var(--main-color)";
+      titleEl.style.padding = "5px 10px";
+      titleEl.style.borderRadius = "5px";
+    });
+    titleEl.addEventListener("mouseleave", () => {
+      if (document.activeElement !== titleEl) {
+        titleEl.style.outline = "none";
+        titleEl.style.padding = "0";
+      }
+    });
+    
+    // Click to edit title
+    titleEl.addEventListener("click", () => {
+      titleEl.contentEditable = true;
+      titleEl.focus();
+      
+      const saveTitle = () => {
+        titleEl.contentEditable = false;
+        titleEl.style.outline = "none";
+        titleEl.style.padding = "0";
+        const newTitle = titleEl.textContent.trim();
+        if (newTitle) {
+          // Update localStorage
+          let pl = JSON.parse(localStorage.getItem(`playlist_${al.id}`) || "null");
+          if (pl) {
+            pl.title = newTitle;
+            localStorage.setItem(`playlist_${al.id}`, JSON.stringify(pl));
+            showToast(`Playlist renamed to "${newTitle}"`);
+            // Reload playlists in sidebar
+            loadPlaylists();
+          }
+        }
+      };
+      
+      titleEl.addEventListener("blur", saveTitle, { once: true });
+      titleEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          saveTitle();
+        }
+      }, { once: true });
+    });
+    
+    // Delete playlist
+    deleteBtn.onclick = () => {
+      if (confirm(`Are you sure you want to delete "${al.title}"?`)) {
+        deletePlaylist(al.id);
+        showToast(`Deleted playlist "${al.title}"`);
+        loadPlaylists();
+        showView("search");
+      }
+    };
   } else {
     // Regular album: fetch from API
     const data = await fetch(`${API}/album/%3Fid=${al.id}`).then((r) => r.json());

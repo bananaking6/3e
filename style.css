@@ -427,8 +427,7 @@ main {
     display: none;
 }
 
-#playAll,
-#shufflePlay {
+.album-action {
     background: var(--main-color);
     color: var(--color-bg-base);
     padding: 14px 36px;
@@ -447,19 +446,18 @@ main {
     letter-spacing: 0.5px;
 }
 
-#playAll:hover,
-#shufflePlay:hover {
+.album-action:hover {
     transform: scale(1.02);
     box-shadow: 0 4px 15px rgba(29, 185, 84, 0.4);
 }
 
-#shufflePlay {
+.album-action.secondary {
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: var(--color-text-base);
 }
 
-#shufflePlay:hover {
+.album-action.secondary:hover {
     border-color: var(--color-text-base);
     background: rgba(255, 255, 255, 0.1);
     box-shadow: none;
