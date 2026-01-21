@@ -770,40 +770,25 @@ function deletePlaylist(id) {
 }
 
 function addToPlaylist(id, track) {
-  let pl = JSON.parse(localStorage.getItem(`playlist_${id}`) || "null");
+  const key = `playlist_${id}`;
+  const pl = JSON.parse(localStorage.getItem(key) || "null");
 
-  if (!pl) {
-    console.warn("Playlist not found:", id);
-    return;
-  }
+  if (!pl) return console.warn("Playlist not found:", id);
 
-  const index = pl.tracks.findIndex((t) => t.id === track.id);
+  const trackIndex = pl.tracks.findIndex((t) => t.id === track.id);
 
-  if (index !== -1) {
-    // REMOVE
-    pl.tracks.splice(index, 1);
+  if (trackIndex !== -1) {
+    // Remove track
+    pl.tracks.splice(trackIndex, 1);
     pl.duration = Math.max(0, (pl.duration || 0) - track.duration);
   } else {
-    // ADD
+    // Add track
     pl.tracks.push(track);
     pl.duration = (pl.duration || 0) + track.duration;
   }
 
   pl.numberOfTracks = pl.tracks.length;
-  localStorage.setItem(`playlist_${id}`, JSON.stringify(pl));
-}
-
-function addActiveToPlaylist(id) {
-  let pl = JSON.parse(localStorage.getItem(`playlist_${id}`) || "null");
-  if (pl) {
-    const track = queue[index];
-    pl.tracks.push(track);
-    pl.numberOfTracks = pl.tracks.length;
-    pl.duration = (pl.duration || 0) + track.duration;
-    localStorage.setItem(`playlist_${id}`, JSON.stringify(pl));
-  } else {
-    console.warn("Playlist not found:", id);
-  }
+  localStorage.setItem(key, JSON.stringify(pl));
 }
 
 function loadPlaylists() {
@@ -819,6 +804,74 @@ function loadPlaylists() {
       playlistsBar.appendChild(plDiv);
     }
   }
+
+  let pinnedBar = document.getElementById("pinned");
+  pinnedBar.innerHTML = "";
+  let pinned = JSON.parse(localStorage.getItem("pinned")) || [
+    [
+      "album",
+      {
+        id: 459844445,
+        title: "Breach",
+        duration: 2849,
+        streamReady: true,
+        payToStream: false,
+        adSupportedStreamReady: true,
+        djReady: true,
+        stemReady: false,
+        streamStartDate: "2025-07-18T00:00:00.000+0000",
+        allowStreaming: true,
+        premiumStreamingOnly: false,
+        numberOfTracks: 13,
+        numberOfVideos: 0,
+        numberOfVolumes: 1,
+        releaseDate: "2025-09-12",
+        copyright: "© 2025 Fueled By Ramen LLC",
+        type: "ALBUM",
+        version: null,
+        url: "http://www.tidal.com/album/459844445",
+        cover: "65f6811b-379f-4aaf-aa7f-ce5d588398b6",
+        vibrantColor: "#dc493c",
+        videoCover: null,
+        explicit: false,
+        upc: "075679609908",
+        popularity: 64,
+        audioQuality: "LOSSLESS",
+        audioModes: ["STEREO"],
+        mediaMetadata: { tags: ["LOSSLESS", "HIRES_LOSSLESS"] },
+        upload: false,
+        artist: {
+          id: 4664877,
+          name: "twenty one pilots",
+          handle: null,
+          type: "MAIN",
+          picture: "e884d40b-a2b3-4d5c-8f31-f4fc523ad506",
+        },
+        artists: [
+          {
+            id: 4664877,
+            name: "twenty one pilots",
+            handle: null,
+            type: "MAIN",
+            picture: "e884d40b-a2b3-4d5c-8f31-f4fc523ad506",
+          },
+        ],
+      },
+    ],
+  ];
+  pinned.forEach((pinnedItem) => {
+    const pDiv = document.createElement("button");
+    if (pinnedItem[0] == "album") {
+      al = pinnedItem[1];
+      pDiv.textContent = al.title;
+      pDiv.onclick = () => openAlbum(al);
+    } else if (pinnedItem[0] == "artist") {
+      ar = pinnedItem[1];
+      pDiv.textContent = ar[1];
+      pDiv.onclick = () => openArtist(ar[0], ar[1], ar[2]);
+    }
+    pinnedBar.appendChild(pDiv);
+  });
 }
 
 document.addEventListener("DOMContentLoaded", loadPlaylists);
@@ -939,6 +992,27 @@ async function openArtist(id, name, pic) {
         <h2>${name}</h2>
     </div>
     <div id="artistContent"></div>`;
+
+  el.querySelector("h2").onclick = () => {
+    const pinned = JSON.parse(localStorage.getItem("pinned")) || [];
+    const item = ["artist", [id, name, pic]];
+
+    // Check if already pinned
+    const index = pinned.findIndex(
+      ([type, data]) => type === "artist" && data[0] === id,
+    );
+
+    if (index !== -1) {
+      // Remove if already pinned
+      pinned.splice(index, 1);
+    } else {
+      // Add if not pinned
+      pinned.push(item);
+    }
+
+    localStorage.setItem("pinned", JSON.stringify(pinned));
+    loadPlaylists();
+  };
 
   const content = document.getElementById("artistContent");
 
@@ -1077,6 +1151,7 @@ async function openAlbum(al) {
     <button class="album-action" id="playAll">PLAY</button>
     <button class="album-action secondary" id="shufflePlay">SHUFFLE</button>
     <button class="album-action secondary" id="deletePlaylist" style="display: none;">Delete Playlist</button>
+    <button class="album-action secondary" id="pinAlbum" style="display: none;">Pin Album</button>
   </div>
   <div id="albumTracks"></div>
   `;
@@ -1156,6 +1231,29 @@ async function openAlbum(al) {
       r.json(),
     );
     tracks = data?.data?.items || [];
+    const pinEl = document.getElementById("pinAlbum");
+    pinEl.style.display = "inline-block";
+
+    pinEl.addEventListener("click", () => {
+      const pinned = JSON.parse(localStorage.getItem("pinned")) || [];
+      const item = ["album", al]; // al is your album data
+
+      // Check if album is already pinned
+      const index = pinned.findIndex(
+        ([type, data]) => type === "album" && data.id === al.id,
+      );
+
+      if (index !== -1) {
+        // Remove if already pinned
+        pinned.splice(index, 1);
+      } else {
+        // Add if not pinned
+        pinned.push(item);
+      }
+
+      localStorage.setItem("pinned", JSON.stringify(pinned));
+      loadPlaylists();
+    });
   }
 
   tracks.forEach((t) => {

@@ -1,7 +1,7 @@
 :root {
     /* --- Colors --- */
-    --main-color: #1db954; /* Was --color-primary */
-    --secondary-color: #169c46; /* Was --color-primary-dark */
+    --main-color: #1db954;
+    --secondary-color: #169c46;
     --color-bg-base: #0a0a0a;
     --color-bg-surface: #121212;
     --color-bg-elevated: #181818;
@@ -385,6 +385,11 @@ main {
     font-size: 4rem;
     font-weight: 900;
     text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+#artistBanner h2:hover {
+    color: var(--main-color);
+    cursor: pointer;
 }
 
 /* Album Page */
