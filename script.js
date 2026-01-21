@@ -1,4 +1,4 @@
-const PROXY_ENABLED = true;
+const PROXY_ENABLED = false;
 const PROXY_VALUE = PROXY_ENABLED
   ? "https://api.codetabs.com/v1/proxy/?quest="
   : "";
@@ -468,6 +468,27 @@ function reverseAudio() {
   }
 }
 
+async function downloadTrack() {
+  if (!audio || !audio.src) {
+    alert("No audio source");
+    return;
+  }
+
+  const response = await fetch(audio.src);
+  const blob = await response.blob();
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = `${queue[index].title} - ${queue[index].artists.map((a) => a.name).join(", ")}.mp3`;
+  document.body.appendChild(a);
+  a.click();
+
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 /* --- LYRICS --- */
 async function loadLyrics(track) {
   lyricsView.innerHTML = "";
@@ -684,63 +705,11 @@ audio.ontimeupdate = () => {
   });
 };
 
-/* --- Favorites Page --- */
-function openFavorites() {
-  openAlbum({
-    title: "FAVORITES",
-    type: "PLAYLIST",
-    id: "favorites",
-    cover: "5806b59b-2f3d-4d0a-8541-e75de4e58f2c",
-    releaseDate: `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`,
-    artists: [{ name: "You" }],
-    playlistTracks: JSON.parse(localStorage.getItem("favorites") || "[]"),
-    duration: localStorage.favoritesDuration,
-    numberOfTracks: localStorage.favoritesLength,
-  });
-}
-
-function favoriteTrack(track, e) {
-  if (e) e.preventDefault();
-  if (!track) {
-    track = queue[index];
-  }
-  // add track to localStorage
-  let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
-  // check if track is already in favorites
-  if (favorites.find((t) => t.id === track.id)) {
-    showToast(`Removed "${track.title}" from favorites`);
-    if (track == queue[index]) {
-      document.getElementById(
-        "favoriteTrack",
-      ).children[0].children[0].style.fill = "";
-    }
-    favorites = favorites.filter((t) => t.id !== track.id);
-    localStorage.setItem("favorites", JSON.stringify(favorites));
-    localStorage.setItem("favoritesLength", favorites.length);
-    let duration = 0;
-    favorites.forEach((t) => {
-      duration += t.duration;
-    });
-    localStorage.setItem("favoritesDuration", duration);
-    return;
-  }
-  favorites.push(track);
-  localStorage.setItem("favorites", JSON.stringify(favorites));
-  localStorage.setItem("favoritesLength", favorites.length);
-  let duration = 0;
-  favorites.forEach((t) => {
-    duration += t.duration;
-  });
-  localStorage.setItem("favoritesDuration", duration);
-  showToast(`Favorited "${track.title}"`);
-  if (track == queue[index]) {
-    document.getElementById(
-      "favoriteTrack",
-    ).children[0].children[0].style.fill = "currentColor";
-  }
-}
-
 /* --- PLAYLISTS --- */
+if (!localStorage.getItem("playlist-favorites")) {
+  createPlaylist("favorites", "Favorites");
+  localStorage.setItem("playlist-favorites", true);
+}
 function openPlaylist(id) {
   let pl = JSON.parse(localStorage.getItem(`playlist_${id}`) || "null");
   if (pl) {
@@ -750,40 +719,57 @@ function openPlaylist(id) {
       cover: pl.cover || "5806b59b-2f3d-4d0a-8541-e75de4e58f2c",
       releaseDate: `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`,
       artists: [{ name: "You" }],
-      playlistTracks: (pl.tracks || "[]"),
+      playlistTracks: pl.tracks || "[]",
       duration: pl.duration,
       numberOfTracks: pl.numberOfTracks,
+      id: pl.id,
     });
   } else {
     console.warn("Playlist not found:", id);
   }
 }
 
-function createPlaylist(id, title) {
+function createPlaylist(id = crypto.randomUUID(), title = "Untitled Playlist") {
   const pl = {
-    title: title || "New Playlist",
+    title: title,
     tracks: [],
     duration: 0,
     numberOfTracks: 0,
+    id: id,
   };
   localStorage.setItem(`playlist_${id}`, JSON.stringify(pl));
+  loadPlaylists();
 }
 
 function deletePlaylist(id) {
   localStorage.removeItem(`playlist_${id}`);
+  loadPlaylists();
 }
 
 function addToPlaylist(id, track) {
   let pl = JSON.parse(localStorage.getItem(`playlist_${id}`) || "null");
-  if (pl) {
-    pl.tracks.push(track);
-    pl.numberOfTracks = pl.tracks.length;
-    pl.duration = (pl.duration || 0) + track.duration;
-    localStorage.setItem(`playlist_${id}`, JSON.stringify(pl));
-    showToast(`"${track.title}" added to playlist "${pl.title}"`);
-  } else {
+
+  if (!pl) {
     console.warn("Playlist not found:", id);
+    return;
   }
+
+  const index = pl.tracks.findIndex((t) => t.id === track.id);
+
+  if (index !== -1) {
+    // REMOVE
+    pl.tracks.splice(index, 1);
+    pl.duration = Math.max(0, (pl.duration || 0) - track.duration);
+    showToast(`"${track.title}" removed from playlist "${pl.title}"`);
+  } else {
+    // ADD
+    pl.tracks.push(track);
+    pl.duration = (pl.duration || 0) + track.duration;
+    showToast(`"${track.title}" added to playlist "${pl.title}"`);
+  }
+
+  pl.numberOfTracks = pl.tracks.length;
+  localStorage.setItem(`playlist_${id}`, JSON.stringify(pl));
 }
 
 function addActiveToPlaylist(id) {
@@ -801,17 +787,16 @@ function addActiveToPlaylist(id) {
 }
 
 function loadPlaylists() {
-  let sidebar = document.querySelector(".sidebar");
-  sidebar.innerHTML += `<h1>Playlists</h1>`;
+  let playlistsBar = document.getElementById("playlists");
+  playlistsBar.innerHTML = "";
   for (let key in localStorage) {
     if (key.startsWith("playlist_")) {
       let pl = JSON.parse(localStorage.getItem(key));
       const plId = key.replace("playlist_", "");
       const plDiv = document.createElement("button");
-      plDiv.className = "sidebar-item";
       plDiv.textContent = pl.title;
       plDiv.onclick = () => openPlaylist(plId);
-      sidebar.appendChild(plDiv);
+      playlistsBar.appendChild(plDiv);
     }
   }
 }
@@ -1003,11 +988,11 @@ async function openAlbum(al) {
   if (al.type == "PLAYLIST") {
     // Custom Playlist: use stored tracks
     tracks = al.playlistTracks.map((t) => ({ item: t }));
-    
+
     const titleEl = document.getElementById("playlistTitle");
     const deleteBtn = document.getElementById("deletePlaylist");
     deleteBtn.style.display = "inline-block";
-    
+
     // Add hover effect to edit title
     titleEl.style.outline = "none";
     titleEl.addEventListener("mouseenter", () => {
@@ -1021,12 +1006,12 @@ async function openAlbum(al) {
         titleEl.style.padding = "0";
       }
     });
-    
+
     // Click to edit title
     titleEl.addEventListener("click", () => {
       titleEl.contentEditable = true;
       titleEl.focus();
-      
+
       const saveTitle = () => {
         titleEl.contentEditable = false;
         titleEl.style.outline = "none";
@@ -1034,7 +1019,9 @@ async function openAlbum(al) {
         const newTitle = titleEl.textContent.trim();
         if (newTitle) {
           // Update localStorage
-          let pl = JSON.parse(localStorage.getItem(`playlist_${al.id}`) || "null");
+          let pl = JSON.parse(
+            localStorage.getItem(`playlist_${al.id}`) || "null",
+          );
           if (pl) {
             pl.title = newTitle;
             localStorage.setItem(`playlist_${al.id}`, JSON.stringify(pl));
@@ -1044,16 +1031,20 @@ async function openAlbum(al) {
           }
         }
       };
-      
+
       titleEl.addEventListener("blur", saveTitle, { once: true });
-      titleEl.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          saveTitle();
-        }
-      }, { once: true });
+      titleEl.addEventListener(
+        "keydown",
+        (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            saveTitle();
+          }
+        },
+        { once: true },
+      );
     });
-    
+
     // Delete playlist
     deleteBtn.onclick = () => {
       if (confirm(`Are you sure you want to delete "${al.title}"?`)) {
@@ -1065,7 +1056,9 @@ async function openAlbum(al) {
     };
   } else {
     // Regular album: fetch from API
-    const data = await fetch(`${API}/album/%3Fid=${al.id}`).then((r) => r.json());
+    const data = await fetch(`${API}/album/%3Fid=${al.id}`).then((r) =>
+      r.json(),
+    );
     tracks = data?.data?.items || [];
   }
 
@@ -1268,27 +1261,3 @@ seekBar.addEventListener("mouseleave", () => {
 audio.addEventListener("timeupdate", updateProgress);
 audio.addEventListener("progress", updateProgress);
 audio.addEventListener("loadedmetadata", updateProgress);
-
-function downloadSong(track, mp3Url, coverUrl) {
-  // Create a filename-friendly version of the track title
-  const fileName = `${track.title} - ${track.artists.map((a) => a.name).join(", ")}.mp3`;
-
-  // Download the MP3
-  fetch(mp3Url)
-    .then((response) => {
-      if (!response.ok) throw new Error("Network response was not ok");
-      return response.blob();
-    })
-    .then((blob) => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      console.log(`Downloaded "${fileName}"`);
-    })
-    .catch((error) => console.error("Error downloading MP3:", error));
-}

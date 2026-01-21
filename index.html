@@ -12,11 +12,18 @@
         <div id="bg"></div>
         <div id="app">
             <aside class="sidebar">
-                <h1>𝚺 Music</h1>
-                <button onclick="showView('home')">Home</button>
-                <button onclick="showView('search')">Search</button>
-                <button onclick="openFavorites()">Favorites</button>
-                <button onclick="reverseAudio()">REVERSE SONG</button>
+                <section id="side-main">
+                    <h1>𝚺 Music</h1>
+                    <button onclick="showView('home')">Home</button>
+                    <button onclick="showView('search')">Search</button>
+                    <button onclick="reverseAudio()">REVERSE SONG</button>
+                    <br />
+                </section>
+                <section id="side-playlists">
+                    <h1>Playlists</h1>
+                    <section id="playlists"></section>
+                    <button onclick="createPlaylist()">+ New Playlist</button>
+                </section>
             </aside>
             <main>
                 <section id="home" class="view">
@@ -33,7 +40,7 @@
                                 🔍 Start Searching
                             </button>
                             <button
-                                onclick="openFavorites()"
+                                onclick="openPlaylist('favorites')"
                                 class="home-button secondary"
                             >
                                 ⭐ View Favorites
@@ -174,7 +181,7 @@
                         </svg>
                     </button>
                     <button
-                        onclick="favoriteTrack()"
+                        onclick="addToPlaylist('favorites', queue[index])"
                         id="favoriteTrack"
                         title="Favorite"
                     >
@@ -191,6 +198,24 @@
                             <path
                                 d="M20.8 4.6c-1.9-1.9-5-1.9-6.9 0L12 6.5l-1.9-1.9c-1.9-1.9-5-1.9-6.9 0s-1.9 5 0 6.9l1.9 1.9L12 21l6.9-7.6 1.9-1.9c1.9-1.9 1.9-5 0-6.9z"
                             ></path>
+                        </svg>
+                    </button>
+                    <button onclick="downloadTrack()" title="Download">
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                            ></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
                     </button>
                 </div>
