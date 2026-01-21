@@ -740,7 +740,7 @@ function openPlaylist(id) {
       title: pl.title,
       type: "PLAYLIST",
       cover: pl.cover || "5806b59b-2f3d-4d0a-8541-e75de4e58f2c",
-      releaseDate: `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`,
+      releaseDate: `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate() - 1}`,
       artists: [{ name: "You" }],
       playlistTracks: pl.tracks || "[]",
       duration: pl.duration,
@@ -1130,6 +1130,7 @@ async function openAlbum(al) {
   if (al.releaseDate) {
     try {
       const date = new Date(al.releaseDate);
+      date.setDate(date.getDate() + 1);
       dateStr = date.toLocaleDateString(undefined, {
         year: "numeric",
         month: "long",
