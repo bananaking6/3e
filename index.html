@@ -181,9 +181,8 @@
                         </svg>
                     </button>
                     <button
-                        onclick="addToPlaylist('favorites', queue[index])"
-                        id="favoriteTrack"
-                        title="Favorite"
+                        onclick="openAddToPlaylistModal()"
+                        title="Add to Playlist"
                     >
                         <svg
                             width="20"
@@ -195,9 +194,8 @@
                             stroke-linecap="round"
                             stroke-linejoin="round"
                         >
-                            <path
-                                d="M20.8 4.6c-1.9-1.9-5-1.9-6.9 0L12 6.5l-1.9-1.9c-1.9-1.9-5-1.9-6.9 0s-1.9 5 0 6.9l1.9 1.9L12 21l6.9-7.6 1.9-1.9c1.9-1.9 1.9-5 0-6.9z"
-                            ></path>
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
                     </button>
                     <button onclick="downloadTrack()" title="Download">
@@ -223,6 +221,33 @@
         </div>
         <div id="lyricsView" class="hidden"></div>
         <div id="queueView" class="hidden"></div>
+        <div
+            id="playlistModal"
+            class="hidden"
+            onclick="if (event.target === this) closePlaylistModal();"
+        >
+            <div class="modal-content">
+                <h3>Save to Playlist</h3>
+                <div
+                    id="playlistList"
+                    style="max-height: 300px; overflow-y: auto"
+                ></div>
+                <div class="modal-actions">
+                    <button
+                        class="modal-btn cancel"
+                        onclick="closePlaylistModal()"
+                    >
+                        Done
+                    </button>
+                    <button
+                        class="modal-btn create"
+                        onclick="createNewPlaylistFromModal()"
+                    >
+                        + New Playlist
+                    </button>
+                </div>
+            </div>
+        </div>
         <audio id="audio" crossorigin="anonymous"></audio>
         <script src="script.js"></script>
         <script src="adddemo.js"></script>

@@ -1,4 +1,4 @@
-const PROXY_ENABLED = false;
+const PROXY_ENABLED = document.location.hostname == "localhost" ? false : true;
 const PROXY_VALUE = PROXY_ENABLED
   ? "https://api.codetabs.com/v1/proxy/?quest="
   : "";
@@ -760,12 +760,10 @@ function addToPlaylist(id, track) {
     // REMOVE
     pl.tracks.splice(index, 1);
     pl.duration = Math.max(0, (pl.duration || 0) - track.duration);
-    showToast(`"${track.title}" removed from playlist "${pl.title}"`);
   } else {
     // ADD
     pl.tracks.push(track);
     pl.duration = (pl.duration || 0) + track.duration;
-    showToast(`"${track.title}" added to playlist "${pl.title}"`);
   }
 
   pl.numberOfTracks = pl.tracks.length;
@@ -780,7 +778,6 @@ function addActiveToPlaylist(id) {
     pl.numberOfTracks = pl.tracks.length;
     pl.duration = (pl.duration || 0) + track.duration;
     localStorage.setItem(`playlist_${id}`, JSON.stringify(pl));
-    showToast(`"${track.title}" added to playlist "${pl.title}"`);
   } else {
     console.warn("Playlist not found:", id);
   }
@@ -802,6 +799,82 @@ function loadPlaylists() {
 }
 
 document.addEventListener("DOMContentLoaded", loadPlaylists);
+
+function openAddToPlaylistModal(track) {
+  if (!track) {
+    if (
+      typeof queue !== "undefined" &&
+      queue.length > 0 &&
+      typeof index !== "undefined"
+    ) {
+      track = queue[index];
+    } else {
+      showToast("No track selected");
+      return;
+    }
+  }
+
+  track = queue[index];
+  const modal = document.getElementById("playlistModal");
+  const list = document.getElementById("playlistList");
+  list.innerHTML = "";
+
+  modal.classList.remove("hidden");
+
+  for (let key in localStorage) {
+    if (key.startsWith("playlist_")) {
+      try {
+        let pl = JSON.parse(localStorage.getItem(key));
+        const plId = key.replace("playlist_", "");
+
+        const div = document.createElement("div");
+        div.className = "playlist-option";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = `chk-${plId}`;
+
+        // Check if track is already in playlist
+        const isInPlaylist = pl.tracks.some((t) => t.id === track.id);
+        checkbox.checked = isInPlaylist;
+
+        checkbox.onchange = (e) => {
+          addToPlaylist(plId, track);
+        };
+
+        const label = document.createElement("label");
+        label.htmlFor = `chk-${plId}`;
+        label.textContent = pl.title;
+
+        div.appendChild(checkbox);
+        div.appendChild(label);
+
+        div.onclick = (e) => {
+          if (e.target !== checkbox && e.target !== label) {
+            checkbox.checked = !checkbox.checked;
+            checkbox.dispatchEvent(new Event("change"));
+          }
+        };
+
+        list.appendChild(div);
+      } catch (e) {
+        console.error("Error parsing playlist", key, e);
+      }
+    }
+  }
+}
+
+function closePlaylistModal() {
+  document.getElementById("playlistModal").classList.add("hidden");
+}
+
+function createNewPlaylistFromModal() {
+  const name = prompt("Playlist Name:");
+  if (name) {
+    createPlaylist(crypto.randomUUID(), name);
+    openAddToPlaylistModal();
+  }
+}
 
 /* --- ARTIST PAGE --- */
 // ===== Deduplicate albums =====
