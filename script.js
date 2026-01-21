@@ -261,34 +261,28 @@ async function loadTrack(trackOrIndex) {
     track.title || "Unknown Title";
   document.getElementById("playerArtist").textContent =
     `${track.artists?.[0]?.name || "Unknown Artist"} - ${track.album.title || ""}`;
-
   document.title = `${track.title || "Unknown Title"} - ${
     track.artists?.[0]?.name || "Unknown Artist"
   }`;
 
-  // Set main and secondary colors dynamically
+  // Set colors
   document.documentElement.style.setProperty(
     "--main-color",
     track.album.vibrantColor,
   );
-
-  // Secondary color: 40 lighter (positive) or darker (negative)
   document.documentElement.style.setProperty(
     "--secondary-color",
     adjustColor(track.album.vibrantColor, -50),
   );
 
-  // update queue highlight
+  // Queue highlight
   const queueItems = queueView.querySelectorAll("div");
   queueItems.forEach((item, i) => {
-    if (i === index) {
-      item.classList.add("current");
-    } else {
-      item.classList.remove("current");
-    }
+    item.classList.toggle("current", i === trackIndex);
   });
   saveSessionStorage();
 
+  // Artist & cover click handlers
   document.getElementById("playerArtist").onclick = () => {
     if (track.artists?.[0]?.id) {
       openArtist(
@@ -298,42 +292,62 @@ async function loadTrack(trackOrIndex) {
       );
     }
   };
-
   document.getElementById("playerCover").onclick = () => {
-    // fetch the album
     fetch(`${API}/album/%3Fid=${track.album.id}`)
       .then((r) => r.json())
-      .then((data) => {
-        openAlbum(data.data);
-      });
+      .then((data) => openAlbum(data.data));
   };
 
-  // Get track URL (streaming, 206 Partial Content)
-  let trackUrl;
+  // --- Preload / playback logic with Blob ---
+  let trackData;
+
   if (preloadedAudio[trackIndex]) {
-    trackUrl = preloadedAudio[trackIndex];
+    // Already preloaded
+    trackData = preloadedAudio[trackIndex];
   } else {
-    trackUrl = await getTrackUrl(track);
+    // Fetch streaming URL
+    const trackUrl = await getTrackUrl(track);
+    const response = await fetch(trackUrl);
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
+    trackData = {
+      blob,
+      objectUrl,
+      filename: `${track.title || "track"}.mp3`,
+    };
+
+    preloadedAudio[trackIndex] = trackData;
   }
 
-  //console.log("downloadSong", track, trackUrl, img);
-
   // Swap audio instantly
-  audio.src = trackUrl;
+  audio.src = trackData.objectUrl;
   initAudioContext();
   audio.play();
+
   loadLyrics(track);
 
-  // Preload the next track (streaming)
-  if (trackIndex + 1 < queue.length)
+  // Preload next track in queue
+  if (trackIndex + 1 < queue.length) {
     preloadTrack(queue[trackIndex + 1], trackIndex + 1);
+  }
 }
 
 // Preload a track (streaming)
 async function preloadTrack(track, trackIndex) {
-  if (preloadedAudio[trackIndex]) return; // already preloaded
-  const url = await getTrackUrl(track);
-  preloadedAudio[trackIndex] = url;
+  if (preloadedAudio[trackIndex]) return;
+
+  const streamUrl = await getTrackUrl(track);
+
+  const response = await fetch(streamUrl);
+  const blob = await response.blob();
+
+  const objectUrl = URL.createObjectURL(blob);
+
+  preloadedAudio[trackIndex] = {
+    blob,
+    objectUrl,
+  };
 }
 
 // Get streaming track URL
@@ -351,6 +365,7 @@ async function getTrackUrl(track) {
 // Next / Previous tracks
 function next() {
   if (index + 1 < queue.length) {
+    releaseTrack();
     index++;
     loadTrack(index);
   }
@@ -382,40 +397,45 @@ seek.oninput = () => (audio.currentTime = (seek.value / 100) * audio.duration);
 // Auto-next
 audio.onended = next;
 
-// Reverse the audio
-// Reverse the audio and auto-play when ready
-function reverseAudio() {
+// Reverse the audio from preloaded Blob and auto-play when ready
+async function reverseAudio(trackIndex = index) {
   audio.pause();
+
+  const cached = preloadedAudio[trackIndex];
+  if (!cached || !cached.blob) {
+    alert("Track not preloaded yet!");
+    return;
+  }
 
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   const ctx = new AudioCtx();
 
-  fetch(audio.src)
-    .then((r) => r.arrayBuffer())
-    .then((b) => ctx.decodeAudioData(b))
-    .then((buffer) => {
-      // Reverse channels
-      for (let c = 0; c < buffer.numberOfChannels; c++) {
-        buffer.getChannelData(c).reverse();
-      }
+  // Read the Blob as ArrayBuffer
+  const arrayBuffer = await cached.blob.arrayBuffer();
 
-      // Encode to WAV
-      const wavBlob = bufferToWav(buffer);
-      const url = URL.createObjectURL(wavBlob);
+  // Decode audio data
+  const buffer = await ctx.decodeAudioData(arrayBuffer);
 
-      // Auto-play when ready
-      audio.oncanplaythrough = () => {
-        audio.oncanplaythrough = null; // clean up
-        audio.currentTime = 0;
-        audio.play().catch(() => {
-          // autoplay blocked — requires user interaction
-          console.warn("Autoplay blocked by browser");
-        });
-      };
+  // Reverse each channel
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    buffer.getChannelData(c).reverse();
+  }
 
-      audio.src = url;
-      audio.load();
+  // Encode to WAV
+  const wavBlob = bufferToWav(buffer);
+  const url = URL.createObjectURL(wavBlob);
+
+  // Auto-play when ready
+  audio.oncanplaythrough = () => {
+    audio.oncanplaythrough = null;
+    audio.currentTime = 0;
+    audio.play().catch(() => {
+      console.warn("Autoplay blocked by browser");
     });
+  };
+
+  audio.src = url;
+  audio.load();
 
   // ---- WAV encoder ----
   function bufferToWav(buffer) {
@@ -468,25 +488,28 @@ function reverseAudio() {
   }
 }
 
-async function downloadTrack() {
-  if (!audio || !audio.src) {
-    alert("No audio source");
+function downloadTrack(trackIndex = index) {
+  const cached = preloadedAudio[trackIndex];
+  if (!cached) {
+    alert("Track not preloaded yet");
     return;
   }
 
-  const response = await fetch(audio.src);
-  const blob = await response.blob();
-
-  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-
-  a.href = url;
-  a.download = `${queue[index].title} - ${queue[index].artists.map((a) => a.name).join(", ")}.mp3`;
+  a.href = cached.objectUrl;
+  a.download = cached.filename;
   document.body.appendChild(a);
   a.click();
-
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+}
+
+function releaseTrack(trackIndex = index) {
+  const cached = preloadedAudio[trackIndex];
+  if (!cached) {
+    return;
+  }
+  URL.revokeObjectURL(cached.objectUrl);
+  delete preloadedAudio[trackIndex];
 }
 
 /* --- LYRICS --- */
