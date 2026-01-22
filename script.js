@@ -407,6 +407,14 @@ async function reverseAudio(trackIndex = index) {
     return;
   }
 
+  if (preloadedAudio[trackIndex].reversed == true) {
+    preloadedAudio[trackIndex].reversed = false;
+    loadTrack(trackIndex);
+    return;
+  }
+
+  preloadedAudio[trackIndex].reversed = true;
+
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   const ctx = new AudioCtx();
 
