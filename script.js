@@ -518,10 +518,9 @@ async function loadLyrics(track) {
   words = [];
   lines = []; // store line timing info
 
+  activeLyrics = false;
   try {
-    /*
-    console.log(track.artist);
-    let url = `https://lyrics.paxsenix.org/apple-music/search?q=${encodeURIComponent(
+    let url = `${PROXY_VALUE}https://lyrics.paxsenix.org/apple-music/search?q=${encodeURIComponent(
       track.title + " " + track.artist.name,
     )}`;
 
@@ -533,145 +532,134 @@ async function loadLyrics(track) {
       if (lyricsID.isrc == track.isrc) {
         activeLyrics = lyricsID;
       }
-    });*/
+    });
 
     //activeLyrics = { id: "1254572572" };
-    /*
-    activeLyrics = false;
-    if (activeLyrics) {
-      url = `https://lyrics.paxsenix.org/apple-music/lyrics?id=${activeLyrics.id}`;
-      data = await fetch(url).then((r) => r.json());
-      let lyricsColors = [
-        data.track.artwork.textColor1,
-        data.track.artwork.textColor2,
-        data.track.artwork.textColor3,
-        data.track.artwork.textColor4,
-        data.track.artwork.bgColor,
-      ];
-      data.content.forEach((line) => {
-        let lineDiv = document.createElement("div");
-        lineDiv.innerHTML +=
-          (line.oppositeTurn ? "[OPPOSITE] " : "") +
-          (line.background ? "[BACKGROUND] " : "") +
-          ("[" + line.structure + "] ");
-        lineDiv.className = "lyric-line";
-        lineDiv.dataset.time = line.timestamp;
-        lineDiv.dataset.duration = line.duration || 2000; // fallback for line duration
-        let wordPart = false;
-        line.text.forEach((text) => {
-          let span = document.createElement("span");
-          span.classList.add("word");
-          span.innerText = (wordPart ? "" : " ") + text.text;
-          lineDiv.appendChild(span);
-          span.onclick = () => {
-            audio.currentTime = text.timestamp / 1000;
-          };
-          const word = {
-            text: text.text,
-            time: text.timestamp,
-            duration: text.duration || 150,
-            el: span,
-          };
-          words.push(word);
-          if (wordPart) wordPart = false;
-          if (text.part) {
-            wordPart = true;
-          }
-        });
-        if (line.backgroundText[0]) {
-          backgroundSpan = document.createElement("span");
-          backgroundSpan.innerText += " | ";
-          line.backgroundText.forEach((text) => {
-            let span = document.createElement("span");
-            span.classList.add("word");
-            span.innerText = (wordPart ? "" : " ") + text.text;
-            backgroundSpan.appendChild(span);
-            span.onclick = () => {
-              audio.currentTime = text.timestamp / 1000;
-            };
-            const word = {
-              text: text.text,
-              time: text.timestamp,
-              duration: text.duration || 150,
-              el: span,
-            };
-            words.push(word);
-            if (wordPart) wordPart = false;
-            if (text.part) {
-              wordPart = true;
-            }
-          });
-          lineDiv.appendChild(backgroundSpan);
-        }
-        lyricsView.appendChild(lineDiv);
+    if (!activeLyrics) return;
+
+    url =
+      PROXY_VALUE +
+      `https://lyrics.paxsenix.org/apple-music/lyrics?id=${activeLyrics.id}`;
+
+    data = await fetch(url).then((r) => r.json());
+
+    const lyricsColors = [
+      data.track.artwork.textColor1,
+      data.track.artwork.textColor2,
+      data.track.artwork.textColor3,
+      data.track.artwork.textColor4,
+      data.track.artwork.bgColor,
+    ];
+
+    // ---------- helpers ----------
+
+    function createWordSpan(textData, wordPartRef) {
+      const span = document.createElement("span");
+      span.classList.add("word");
+      span.innerText = (wordPartRef.value ? "" : " ") + textData.text;
+
+      span.onclick = () => {
+        audio.currentTime = textData.timestamp / 1000;
+      };
+
+      words.push({
+        text: textData.text,
+        time: textData.timestamp,
+        duration: textData.duration || 150,
+        el: span,
       });
-    } else {*/
-    let url = `${LYRICS_WORKER}?title=${encodeURIComponent(
-      track.title,
-    )}&artist=${encodeURIComponent(track.artists?.[0]?.name || "")}&duration=${Math.floor(track.duration)}&type=Word`;
 
-    url = `https://api.codetabs.com/v1/proxy/?quest=${LYRICS_WORKER}?isrc=${track.isrc}`;
-
-    if (PROXY_ENABLED) url = url.replaceAll("%20", "_").replaceAll("&", "%26");
-
-    const data = await fetch(url).then((r) => r.json());
-
-    if (data?.lyrics?.length) {
-      data.lyrics.forEach((line) => {
-        const lineDiv = document.createElement("div");
-        lineDiv.className = "lyric-line";
-        lineDiv.dataset.time = line.time;
-        lineDiv.dataset.duration = line.duration || 2000; // fallback for line duration
-
-        // store line info for line-level timing
-        lines.push({
-          time: line.time,
-          duration: line.duration || 2000,
-          el: lineDiv,
-        });
-
-        if (line.syllabus?.length) {
-          line.syllabus.forEach((w) => {
-            const word = {
-              text: w.text,
-              time: w.time,
-              duration: w.duration || 150,
-              el: null,
-            };
-
-            const span = document.createElement("span");
-            span.textContent = w.text;
-            span.className = "word";
-            span.dataset.time = w.time;
-
-            span.onclick = () => {
-              audio.currentTime = w.time / 1000;
-            };
-
-            lineDiv.appendChild(span);
-            word.el = span;
-            words.push(word);
-          });
-        } else {
-          // fallback line (no word timing)
-          lineDiv.textContent = line.text;
-
-          // --- Add click support for line elements ---
-          lineDiv.style.cursor = "pointer";
-          lineDiv.onclick = () => {
-            audio.currentTime = line.time / 1000;
-          };
-        }
-
-        lyricsView.appendChild(lineDiv);
-      });
-    } else {
-      lyricsView.textContent = "No lyrics available";
+      wordPartRef.value = !!textData.part;
+      return span;
     }
-    /* } */
+
+    function renderTextArray(container, textArray) {
+      const wordPartRef = { value: false };
+
+      textArray.forEach((textData) => {
+        const span = createWordSpan(textData, wordPartRef);
+        container.appendChild(span);
+      });
+    }
+
+    // ---------- render lyrics ----------
+
+    data.content.forEach((line) => {
+      const lineDiv = document.createElement("div");
+      lineDiv.className = "lyric-line";
+
+      lineDiv.dataset.time = line.timestamp;
+      lineDiv.dataset.duration = line.duration || 2000;
+
+      // metadata prefix
+      const meta = [
+        line.oppositeTurn && "[OPPOSITE]",
+        line.background && "[BACKGROUND]",
+        `[${line.structure}]`,
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      lineDiv.innerText = meta + " ";
+
+      // main lyrics
+      renderTextArray(lineDiv, line.text);
+
+      // background lyrics
+      if (line.backgroundText?.length) {
+        const bgSpan = document.createElement("span");
+        bgSpan.innerText = " | ";
+        renderTextArray(bgSpan, line.backgroundText);
+        lineDiv.appendChild(bgSpan);
+      }
+
+      lyricsView.appendChild(lineDiv);
+    });
   } catch (e) {
     console.error(e);
-    lyricsView.textContent = "Lyrics unavailable";
+    url = `${API}/lyrics/?id=${track.id}`;
+    data = await fetch(url).then((r) => r.json());
+    data = data.lyrics.subtitles;
+    lines = data.split("\n");
+
+    function parseTimeToMs(timeStr) {
+      const [minutes, seconds] = timeStr.split(":");
+      return (parseInt(minutes, 10) * 60 + parseFloat(seconds)) * 1000;
+    }
+
+    lines.forEach((line, index) => {
+      const match = line.match(/\[(\d+:\d+\.\d+)\]\s*(.*)/);
+      if (!match) return;
+
+      const timeMs = parseTimeToMs(match[1]);
+      const text = match[2];
+
+      let durationMs;
+
+      if (index < lines.length - 1) {
+        const nextMatch = lines[index + 1].match(/\[(\d+:\d+\.\d+)\]/);
+        if (!nextMatch) return;
+
+        const nextTimeMs = parseTimeToMs(nextMatch[1]);
+        durationMs = nextTimeMs - timeMs;
+      } else {
+        // last line → until audio ends
+        durationMs = audio.duration * 1000 - timeMs;
+      }
+
+      const lineDiv = document.createElement("div");
+      lineDiv.className = "lyric-line";
+      lineDiv.innerText = text;
+      lineDiv.dataset.time = timeMs; // milliseconds
+      lineDiv.dataset.duration = durationMs; // milliseconds
+      lines.push({ time: timeMs, duration: durationMs, el: lineDiv });
+
+      lineDiv.onclick = () => {
+        audio.currentTime = timeMs / 1000 + 1;
+      };
+
+      lyricsView.appendChild(lineDiv);
+    });
   }
 }
 
