@@ -1157,6 +1157,12 @@ async function openAlbum(al) {
   <div id="albumTracks"></div>
   `;
   let tracks = [];
+  if (al.artists[0].id && al.artists[0].name && al.artists[0].picture) {
+    el.querySelector("h3").onclick = () => {
+      openArtist(al.artists[0].id, al.artists[0].name, al.artists[0].picture);
+    };
+    el.querySelector("h3").classList.add("clickable");
+  }
   if (al.type == "PLAYLIST") {
     // Custom Playlist: use stored tracks
     tracks = al.playlistTracks.map((t) => ({ item: t }));
@@ -1216,6 +1222,22 @@ async function openAlbum(al) {
         { once: true },
       );
     });
+
+    const grid = document.createElement("div");
+    grid.className = "playlist-cover";
+
+    tracks.slice(0, 4).forEach((t) => {
+      const img = document.createElement("img");
+      img.src = `${IMG}${t.item.album.cover.replaceAll("-", "/")}/160x160.jpg`;
+      Object.assign(img.style, {
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+      });
+      grid.appendChild(img);
+    });
+
+    el.querySelector("img").replaceWith(grid);
 
     // Delete playlist
     deleteBtn.onclick = () => {

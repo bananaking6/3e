@@ -16,6 +16,26 @@
                     <h1>𝚺 Music</h1>
                     <button onclick="showView('home')">Home</button>
                     <button onclick="showView('search')">Search</button>
+                    <button
+                        onclick="
+                            openAlbum({
+                                title: 'Queue',
+                                type: 'PLAYLIST',
+                                cover: '5806b59b-2f3d-4d0a-8541-e75de4e58f2c',
+                                releaseDate: `${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate() - 1}`,
+                                artists: [{ name: 'Various Artists' }],
+                                playlistTracks: queue,
+                                duration: queue.reduce(
+                                    (sum, track) => sum + track.duration,
+                                    0,
+                                ),
+                                numberOfTracks: queue.length,
+                                id: 'queue',
+                            })
+                        "
+                    >
+                        Queue
+                    </button>
                     <button onclick="reverseAudio()">REVERSE SONG</button>
                     <br />
                 </section>
@@ -64,7 +84,6 @@
                 </section>
                 <section id="artist" class="view hidden"></section>
                 <section id="album" class="view hidden"></section>
-                <section id="favorites" class="view hidden"></section>
             </main>
             <footer class="player-footer">
                 <div class="player-seek-container">

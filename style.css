@@ -409,6 +409,15 @@ main {
     object-fit: cover;
 }
 
+.playlist-cover {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 2px;
+    width: 320px;
+    height: 320px;
+}
+
 #album h2 {
     margin-top: var(--space-2xl);
     font-size: 3rem;
@@ -422,6 +431,11 @@ main {
     color: var(--color-text-base);
     opacity: 0.9;
     margin-bottom: var(--space-sm);
+}
+
+#album h3.clickable:hover {
+    cursor: pointer;
+    text-decoration: underline;
 }
 
 #albumInfo {
