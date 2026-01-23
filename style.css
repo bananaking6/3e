@@ -115,6 +115,8 @@ a {
     -webkit-backdrop-filter: var(--backdrop-blur);
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     gap: var(--space-xs);
+    height: calc(100vh - 90px);
+    overflow-y: auto;
 }
 .sidebar section {
     display: flex;

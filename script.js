@@ -1,4 +1,4 @@
-const PROXY_ENABLED = document.location.hostname == "localhost" ? false : true;
+const PROXY_ENABLED = document.location.hostname == "localhost" ? (document.location.port == "5500" ? true : false) : true;
 const PROXY_VALUE = PROXY_ENABLED
   ? "https://api.codetabs.com/v1/proxy/?quest="
   : "";
@@ -858,11 +858,11 @@ function loadPlaylists() {
   pinned.forEach((pinnedItem) => {
     const pDiv = document.createElement("button");
     if (pinnedItem[0] == "album") {
-      al = pinnedItem[1];
+      const al = pinnedItem[1];
       pDiv.textContent = al.title;
       pDiv.onclick = () => openAlbum(al);
     } else if (pinnedItem[0] == "artist") {
-      ar = pinnedItem[1];
+      const ar = pinnedItem[1];
       pDiv.textContent = ar[1];
       pDiv.onclick = () => openArtist(ar[0], ar[1], ar[2]);
     }
@@ -1141,7 +1141,7 @@ async function openAlbum(al) {
     <h2 id="playlistTitle" style="cursor: ${al.type === "PLAYLIST" ? "pointer" : "default"}">${al.title}</h2>
   </div>
   <h3>${al.artists[0].name}${dateStr ? " • " + dateStr : ""}</h3>
-  <span id="albumInfo">${al.numberOfTracks} songs • ${formatTime(al.duration)}${
+  <span id="albumInfo">${al.numberOfTracks} ${al.numberOfTracks === 1 ? "song" : "songs"} • ${formatTime(al.duration)}${
     al.copyright ? " • " + al.copyright : ""
   }</span>
   <div style="margin-top: 20px;">
@@ -1222,9 +1222,24 @@ async function openAlbum(al) {
     const grid = document.createElement("div");
     grid.className = "playlist-cover";
 
-    tracks.slice(0, 4).forEach((t) => {
+    const seenCovers = new Set();
+    const covers = [];
+    
+    for (const t of tracks) {
+      const cover = t.item.album.cover;
+      if (cover && !seenCovers.has(cover)) {
+      seenCovers.add(cover);
+      covers.push(t);
+      if (covers.length === 4) break;
+      }
+    }
+    
+    const gridSize = Math.ceil(Math.sqrt(covers.length));
+    grid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+    
+    covers.forEach((t) => {
       const img = document.createElement("img");
-      img.src = `${IMG}${t.item.album.cover.replaceAll("-", "/")}/160x160.jpg`;
+      img.src = `${IMG}${t.item.album.cover.replaceAll("-", "/")}/320x320.jpg`;
       Object.assign(img.style, {
         width: "100%",
         height: "100%",
